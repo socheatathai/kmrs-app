@@ -31,7 +31,7 @@ kmrs-app/
 ## Requirements
 
 - Node.js 20+
-- pnpm 11
+- pnpm 9
 - Docker
 
 ## Quick Start
