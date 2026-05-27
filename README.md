@@ -145,6 +145,7 @@ apps/core-api/
 |  |  |- qr-codes/
 |  |  |- shops/
 |  |  |- subscriptions/
+|  |  |- uploads/
 |  |  `- users/
 |  |- app.module.ts
 |  `- main.ts
@@ -166,6 +167,7 @@ Current backend scope:
 - audit log listing
 - plans and subscriptions
 - shops, categories, products, and QR codes
+- image upload and image removal endpoints backed by DigitalOcean Spaces
 - public menu endpoints by shop slug
 - QR scan tracking endpoint
 - English and Khmer localization
@@ -212,6 +214,11 @@ Main modules and routes:
   - `GET /users/:userId`
   - `PATCH /users/:userId`
   - `DELETE /users/:userId`
+- `uploads`
+  - `GET /uploads/images?key=products/example.webp`
+  - `POST /uploads/images`
+  - `POST /uploads/images/multiple`
+  - `DELETE /uploads/images?key=products/example.webp`
 - `audit-logs`
   - `GET /audit-logs`
 - `public`
@@ -423,6 +430,12 @@ THROTTLE_LIMIT=120
 AUTH_LOGIN_THROTTLE_TTL_MS=60000
 AUTH_LOGIN_THROTTLE_LIMIT=5
 PUBLIC_MENU_BASE_URL="https://kmrs.app"
+DO_SPACES_PUBLIC_URL="https://your-cdn.example.com"
+DO_SPACES_ENDPOINT="https://sgp1.digitaloceanspaces.com"
+DO_SPACES_REGION="sgp1"
+DO_SPACES_BUCKET="your-bucket-name"
+DO_SPACES_KEY="your-spaces-key"
+DO_SPACES_SECRET="your-spaces-secret"
 CORS_ORIGINS="http://localhost:3000,http://localhost:3001"
 NODE_ENV="development"
 ```
@@ -477,6 +490,7 @@ Matching public API endpoints:
 - If login starts returning `429`, the auth login throttler has been hit. Wait for the throttle window or adjust the local env values.
 - `prisma db seed` is not wired through `prisma.config.ts` yet. Use `pnpm --filter core-api prisma:seed`.
 - Redis is started by Docker, but the current backend code path in this repo does not yet document active Redis-backed features at the root level.
+- Upload endpoints require the DigitalOcean Spaces environment variables in `apps/core-api/.env`.
 
 ## Tech Stack
 
