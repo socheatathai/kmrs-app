@@ -30,7 +30,18 @@ export class ApiNotFoundError extends Error {
 }
 
 function getApiBaseUrl() {
-  const rawBaseUrl = process.env.BASE_URL ?? "http://localhost:3333";
+  const rawBaseUrl = process.env.BASE_URL;
+
+  if (!rawBaseUrl) {
+    if (process.env.NODE_ENV !== "production") {
+      return "http://localhost:3333";
+    }
+
+    throw new Error(
+      "Missing BASE_URL environment variable for customer-web. Set it to the deployed core-api origin.",
+    );
+  }
+
   const normalized = rawBaseUrl.replace(/\/+$/, "").replace(/\/docs$/, "");
 
   return normalized;

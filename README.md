@@ -285,6 +285,10 @@ BASE_URL=http://localhost:3333
 PUBLIC_MENU_BASE_URL=http://localhost:4200
 ```
 
+Deployment note:
+
+- In Vercel or any non-local deployment, `BASE_URL` must point to the deployed `core-api` origin. If it is missing, server-side menu fetches will fail.
+
 ### `apps/merchant-cms`
 
 Nuxt 4 dashboard for both platform admins and merchants. The app now uses real auth against `core-api` and switches between admin and merchant modes based on the authenticated profile.

@@ -16,4 +16,5 @@ Default local URL: `http://localhost:3000`
 ## Notes
 
 - The workspace root is pinned in `next.config.ts` to avoid incorrect monorepo root inference.
-- This app currently has no runtime environment variables.
+- Local development falls back to `http://localhost:3333` when `BASE_URL` is unset.
+- Production deployments must set `BASE_URL` to the deployed `core-api` origin.
