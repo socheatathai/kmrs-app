@@ -11,7 +11,10 @@ import * as bcrypt from 'bcrypt';
 
 import { DatabaseService } from '../../common/services/database.service';
 import { AccessControlService } from '../../common/services/access-control.service';
-import { LEVEL_DEFAULT_PERMISSIONS, LEVELS } from '../../common/auth/level-permissions';
+import {
+  LEVEL_DEFAULT_PERMISSIONS,
+  LEVELS,
+} from '../../common/auth/level-permissions';
 import { I18nService } from '../../common/i18n/i18n.service';
 import { PrismaService } from '../../database/prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
@@ -166,7 +169,10 @@ export class AuthService {
       throw new UnauthorizedException(this.i18n.t('auth.userNotFound'));
     }
 
-    const access = await this.accessControl.getAccessProfile(user.id, user.level);
+    const access = await this.accessControl.getAccessProfile(
+      user.id,
+      user.level,
+    );
 
     return {
       ...user,
@@ -205,7 +211,10 @@ export class AuthService {
   }
 
   private async buildAuthResponse(user: User) {
-    const access = await this.accessControl.getAccessProfile(user.id, user.level);
+    const access = await this.accessControl.getAccessProfile(
+      user.id,
+      user.level,
+    );
     const accessPayload = {
       sub: user.id,
       email: user.email,

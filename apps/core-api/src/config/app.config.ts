@@ -6,8 +6,14 @@ export default () => ({
   jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '30d',
   throttleTtlMs: parseInt(process.env.THROTTLE_TTL_MS ?? '60000', 10),
   throttleLimit: parseInt(process.env.THROTTLE_LIMIT ?? '120', 10),
-  authLoginThrottleTtlMs: parseInt(process.env.AUTH_LOGIN_THROTTLE_TTL_MS ?? '60000', 10),
-  authLoginThrottleLimit: parseInt(process.env.AUTH_LOGIN_THROTTLE_LIMIT ?? '5', 10),
+  authLoginThrottleTtlMs: parseInt(
+    process.env.AUTH_LOGIN_THROTTLE_TTL_MS ?? '60000',
+    10,
+  ),
+  authLoginThrottleLimit: parseInt(
+    process.env.AUTH_LOGIN_THROTTLE_LIMIT ?? '5',
+    10,
+  ),
   publicMenuBaseUrl: process.env.PUBLIC_MENU_BASE_URL ?? 'https://kmrs.app',
   spaces: {
     endpoint: process.env.DO_SPACES_ENDPOINT ?? '',

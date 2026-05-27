@@ -4,9 +4,16 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PutObjectCommand, S3Client, S3ServiceException } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  HeadObjectCommand,
+  PutObjectCommand,
+  S3Client,
+  S3ServiceException,
+} from '@aws-sdk/client-s3';
 import { randomUUID } from 'crypto';
 import { extname } from 'path';
 
@@ -43,7 +50,58 @@ export class UploadsService {
 
   async uploadImage(file: Express.Multer.File, folder: UploadFolder) {
     const key = this.buildObjectKey(file, folder);
+    await this.putImage(key, file);
 
+    return this.buildImageResponse(key);
+  }
+
+  async uploadImages(files: Express.Multer.File[], folder: UploadFolder) {
+    return Promise.all(
+      files.map(async (file) => {
+        const key = this.buildObjectKey(file, folder);
+        await this.putImage(key, file);
+
+        return this.buildImageResponse(key);
+      }),
+    );
+  }
+
+  async getImage(key: string) {
+    await this.assertImageExists(key);
+
+    return this.buildImageResponse(key);
+  }
+
+  async removeImage(key: string) {
+    await this.assertImageExists(key);
+
+    try {
+      await this.s3Client.send(
+        new DeleteObjectCommand({
+          Bucket: this.spacesConfig.bucket,
+          Key: key,
+        }),
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to remove image from Spaces key=${key}`,
+        error instanceof Error ? error.stack : JSON.stringify(error),
+      );
+
+      if (error instanceof S3ServiceException) {
+        throw new BadGatewayException(`Storage delete failed: ${error.name}`);
+      }
+
+      throw new InternalServerErrorException('Unable to remove image');
+    }
+
+    return {
+      key,
+      deleted: true,
+    };
+  }
+
+  private async putImage(key: string, file: Express.Multer.File) {
     try {
       await this.s3Client.send(
         new PutObjectCommand({
@@ -52,6 +110,7 @@ export class UploadsService {
           Body: file.buffer,
           ContentType: file.mimetype,
           CacheControl: 'public, max-age=31536000, immutable',
+          ACL: 'public-read',
         }),
       );
     } catch (error) {
@@ -61,14 +120,45 @@ export class UploadsService {
       );
 
       if (error instanceof S3ServiceException) {
-        throw new BadGatewayException(
-          `Storage upload failed: ${error.name}`,
-        );
+        throw new BadGatewayException(`Storage upload failed: ${error.name}`);
       }
 
       throw new InternalServerErrorException('Unable to upload image');
     }
+  }
 
+  private async assertImageExists(key: string) {
+    try {
+      await this.s3Client.send(
+        new HeadObjectCommand({
+          Bucket: this.spacesConfig.bucket,
+          Key: key,
+        }),
+      );
+    } catch (error) {
+      if (
+        error instanceof S3ServiceException &&
+        (error.name === 'NotFound' ||
+          error.name === 'NoSuchKey' ||
+          error.$metadata.httpStatusCode === 404)
+      ) {
+        throw new NotFoundException(`Image not found for key: ${key}`);
+      }
+
+      this.logger.error(
+        `Failed to read image from Spaces key=${key}`,
+        error instanceof Error ? error.stack : JSON.stringify(error),
+      );
+
+      if (error instanceof S3ServiceException) {
+        throw new BadGatewayException(`Storage read failed: ${error.name}`);
+      }
+
+      throw new InternalServerErrorException('Unable to read image');
+    }
+  }
+
+  private buildImageResponse(key: string) {
     return {
       url: `${this.spacesConfig.publicUrl.replace(/\/+$/, '')}/${key}`,
       key,
@@ -109,7 +199,8 @@ export class UploadsService {
       region: configService.get<string>('spaces.region') ?? '',
       bucket: configService.get<string>('spaces.bucket') ?? '',
       accessKeyId: configService.get<string>('spaces.accessKeyId') ?? '',
-      secretAccessKey: configService.get<string>('spaces.secretAccessKey') ?? '',
+      secretAccessKey:
+        configService.get<string>('spaces.secretAccessKey') ?? '',
       publicUrl: configService.get<string>('spaces.publicUrl') ?? '',
     };
 

@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ShopMemberRole, UserRole } from '@prisma/client';
 
 import { LEVEL_DEFAULT_PERMISSIONS, LEVELS } from '../auth/level-permissions';
@@ -24,7 +28,10 @@ export class AccessControlService {
     private readonly i18n: I18nService,
   ) {}
 
-  async getAccessProfile(userId: string, level: number): Promise<AccessProfile> {
+  async getAccessProfile(
+    userId: string,
+    level: number,
+  ): Promise<AccessProfile> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -89,11 +96,17 @@ export class AccessControlService {
         permissions: [...basePermissions],
       })),
       ...memberships
-        .filter((membership) => !ownedShops.some((shop) => shop.id === membership.shop.id))
+        .filter(
+          (membership) =>
+            !ownedShops.some((shop) => shop.id === membership.shop.id),
+        )
         .map((membership) => ({
           shopId: membership.shop.id,
           shopName: membership.shop.name,
-          role: membership.role === ShopMemberRole.OWNER ? 'OWNER' as const : 'STAFF' as const,
+          role:
+            membership.role === ShopMemberRole.OWNER
+              ? ('OWNER' as const)
+              : ('STAFF' as const),
           permissions: membership.permissions as Permission[],
         })),
     ];

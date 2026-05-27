@@ -7,7 +7,10 @@ import {
 import { UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
-import { LEVEL_DEFAULT_PERMISSIONS, LEVELS } from '../../common/auth/level-permissions';
+import {
+  LEVEL_DEFAULT_PERMISSIONS,
+  LEVELS,
+} from '../../common/auth/level-permissions';
 import { I18nService } from '../../common/i18n/i18n.service';
 import { DatabaseService } from '../../common/services/database.service';
 import { LevelHierarchyService } from '../../common/services/level-hierarchy.service';
@@ -60,11 +63,13 @@ export class UsersService {
       throw new ForbiddenException(this.i18n.t('auth.forbidden', language));
     }
 
-    const existingUser = await this.database.execute('users.create.findByEmail', () =>
-      this.prisma.user.findUnique({
-        where: { email: dto.email },
-        select: { id: true },
-      }),
+    const existingUser = await this.database.execute(
+      'users.create.findByEmail',
+      () =>
+        this.prisma.user.findUnique({
+          where: { email: dto.email },
+          select: { id: true },
+        }),
     );
 
     if (existingUser) {
@@ -96,7 +101,12 @@ export class UsersService {
     return this.findTargetUser(actor, userId, language);
   }
 
-  async update(actor: AuthUser, userId: string, dto: UpdateUserDto, language?: string) {
+  async update(
+    actor: AuthUser,
+    userId: string,
+    dto: UpdateUserDto,
+    language?: string,
+  ) {
     const target = await this.findTargetUser(actor, userId, language);
 
     if (dto.level !== undefined) {
@@ -108,11 +118,13 @@ export class UsersService {
     }
 
     if (dto.email && dto.email !== target.email) {
-      const existingUser = await this.database.execute('users.update.findByEmail', () =>
-        this.prisma.user.findUnique({
-          where: { email: dto.email },
-          select: { id: true },
-        }),
+      const existingUser = await this.database.execute(
+        'users.update.findByEmail',
+        () =>
+          this.prisma.user.findUnique({
+            where: { email: dto.email },
+            select: { id: true },
+          }),
       );
 
       if (existingUser) {
@@ -127,7 +139,9 @@ export class UsersService {
     }
 
     if (dto.level !== undefined && !dto.permissions) {
-      updateData.permissions = [...(LEVEL_DEFAULT_PERMISSIONS[dto.level] ?? target.permissions)];
+      updateData.permissions = [
+        ...(LEVEL_DEFAULT_PERMISSIONS[dto.level] ?? target.permissions),
+      ];
     }
 
     return this.database.execute('users.update', () =>
@@ -150,7 +164,11 @@ export class UsersService {
     );
   }
 
-  private async findTargetUser(actor: AuthUser, userId: string, language?: string) {
+  private async findTargetUser(
+    actor: AuthUser,
+    userId: string,
+    language?: string,
+  ) {
     const target = await this.database.execute('users.findTargetUser', () =>
       this.prisma.user.findUnique({
         where: { id: userId },
@@ -172,7 +190,10 @@ export class UsersService {
 
     this.levelHierarchy.assertCanManage(actor.level, target.level);
 
-    if (actor.level === LEVELS.ADMIN_MIDDLE && target.managedById !== actor.sub) {
+    if (
+      actor.level === LEVELS.ADMIN_MIDDLE &&
+      target.managedById !== actor.sub
+    ) {
       throw new ForbiddenException(this.i18n.t('auth.forbidden', language));
     }
 
