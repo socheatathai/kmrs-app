@@ -1,0 +1,20 @@
+export default () => ({
+  port: parseInt(process.env.PORT ?? '3000', 10),
+  corsOrigins: process.env.CORS_ORIGINS ?? '',
+  jwtSecret: process.env.JWT_SECRET ?? '',
+  jwtRefreshSecret: process.env.JWT_REFRESH_SECRET ?? '',
+  jwtRefreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '30d',
+  throttleTtlMs: parseInt(process.env.THROTTLE_TTL_MS ?? '60000', 10),
+  throttleLimit: parseInt(process.env.THROTTLE_LIMIT ?? '120', 10),
+  authLoginThrottleTtlMs: parseInt(process.env.AUTH_LOGIN_THROTTLE_TTL_MS ?? '60000', 10),
+  authLoginThrottleLimit: parseInt(process.env.AUTH_LOGIN_THROTTLE_LIMIT ?? '5', 10),
+  publicMenuBaseUrl: process.env.PUBLIC_MENU_BASE_URL ?? 'https://kmrs.app',
+  spaces: {
+    endpoint: process.env.DO_SPACES_ENDPOINT ?? '',
+    region: process.env.DO_SPACES_REGION ?? '',
+    bucket: process.env.DO_SPACES_BUCKET ?? '',
+    accessKeyId: process.env.DO_SPACES_KEY ?? '',
+    secretAccessKey: process.env.DO_SPACES_SECRET ?? '',
+    publicUrl: process.env.DO_SPACES_PUBLIC_URL ?? '',
+  },
+});

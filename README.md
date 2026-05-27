@@ -1,159 +1,493 @@
-# Turborepo starter
+# KMRS App Monorepo
 
-This Turborepo starter is maintained by the Turborepo core team.
+KMRS is a monorepo for a digital menu platform. It includes:
 
-## Using this example
+- `apps/core-api`: NestJS + Prisma backend
+- `apps/customer-web`: Next.js public menu frontend
+- `apps/merchant-cms`: Nuxt 4 admin and merchant dashboard
+- `packages/*`: shared workspace code
 
-Run the following command:
+The workspace is managed with `pnpm` and Turbo.
 
-```sh
-npx create-turbo@latest
+## Workspace
+
+```text
+kmrs-app/
+|- apps/
+|  |- core-api/
+|  |- customer-web/
+|  `- merchant-cms/
+|- packages/
+|  |- api-client/
+|  |- config/
+|  |- types/
+|  |- ui/
+|  `- utils/
+|- docker-compose.yml
+|- pnpm-workspace.yaml
+`- turbo.json
 ```
 
-## What's inside?
+## Requirements
 
-This Turborepo includes the following packages/apps:
+- Node.js 20+
+- pnpm 11
+- Docker
 
-### Apps and Packages
+## Quick Start
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+1. Install workspace dependencies.
 
 ```sh
-cd my-turborepo
-turbo build
+pnpm install
 ```
 
-Without global `turbo`, use your package manager:
+2. Start local infrastructure.
 
 ```sh
-cd my-turborepo
-npx turbo build
-pnpm dlx turbo build
-pnpm exec turbo build
+docker-compose up -d
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+This starts:
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+- PostgreSQL 16 on `localhost:5432`
+- Redis 7 on `localhost:6379`
+
+3. Create local env files.
+
+```powershell
+Copy-Item apps/core-api/.env.example apps/core-api/.env
+Copy-Item apps/customer-web/.env.example apps/customer-web/.env
+Copy-Item apps/merchant-cms/.env.example apps/merchant-cms/.env
+```
+
+4. Prepare the backend database.
 
 ```sh
-turbo build --filter=docs
+pnpm --filter core-api prisma:generate
+pnpm --filter core-api prisma:migrate:dev
+pnpm --filter core-api prisma:seed
 ```
 
-Without global `turbo`:
+5. Run the apps.
+
+Run all dev servers:
 
 ```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+pnpm dev
 ```
 
-### Develop
-
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+Or run them individually:
 
 ```sh
-cd my-turborepo
-turbo dev
+pnpm --filter core-api dev
+pnpm --filter customer-web dev
+pnpm --filter merchant-cms dev
 ```
 
-Without global `turbo`, use your package manager:
+## Default Local URLs
+
+- `core-api`: `http://localhost:3333`
+- Swagger docs: `http://localhost:3333/docs`
+- `merchant-cms`: `http://localhost:3000`
+- `customer-web`: `http://localhost:4200`
+
+Note:
+
+- `apps/core-api/.env.example` still shows `PORT=3000`, but the current local setup uses `3333`.
+- `apps/merchant-cms/.env.example` already points to `http://localhost:3333`.
+- `apps/customer-web/.env.example` expects `BASE_URL=http://localhost:3333`.
+
+## Common Commands
+
+Workspace:
 
 ```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
+pnpm build
+pnpm lint
+pnpm check-types
+pnpm test
+pnpm format
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+Backend:
 
 ```sh
-turbo dev --filter=web
+pnpm --filter core-api prisma:generate
+pnpm --filter core-api prisma:migrate:dev
+pnpm --filter core-api prisma:seed
+pnpm --filter core-api prisma:studio
 ```
 
-Without global `turbo`:
+## Project Structure
 
-```sh
-npx turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
+### `apps/core-api`
+
+NestJS backend for auth, permissions, admin management, merchant resources, subscriptions, public menu APIs, and audit logging.
+
+```text
+apps/core-api/
+|- prisma/
+|  |- migrations/
+|  |- schema.prisma
+|  `- seed.ts
+|- src/
+|  |- common/
+|  |- config/
+|  |- database/
+|  |- modules/
+|  |  |- audit-logs/
+|  |  |- auth/
+|  |  |- categories/
+|  |  |- plans/
+|  |  |- products/
+|  |  |- public/
+|  |  |- qr-codes/
+|  |  |- shops/
+|  |  |- subscriptions/
+|  |  `- users/
+|  |- app.module.ts
+|  `- main.ts
+|- .env.example
+|- package.json
+`- README.md
 ```
 
-### Remote Caching
+Current backend scope:
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+- JWT access token + refresh token auth
+- `ValidationPipe` request validation
+- bcrypt password hashing
+- rate limiting with `@nestjs/throttler`
+- `helmet` and CORS allowlisting
+- user hierarchy with `level`
+- string-based permissions for MVP
+- admin user management
+- audit log listing
+- plans and subscriptions
+- shops, categories, products, and QR codes
+- public menu endpoints by shop slug
+- QR scan tracking endpoint
+- English and Khmer localization
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+Main modules and routes:
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+- `auth`
+  - `POST /auth/register`
+  - `POST /auth/login`
+  - `GET /auth/me`
+  - `POST /auth/refresh`
+  - `POST /auth/logout`
+- `plans`
+  - `GET /plans`
+- `subscriptions`
+  - `POST /subscriptions`
+  - `GET /subscriptions/me`
+  - `GET /subscriptions/current`
+  - `PATCH /subscriptions/:subscriptionId/cancel`
+- `shops`
+  - `GET /shops`
+  - `POST /shops`
+  - `GET /shops/:shopId`
+  - `PATCH /shops/:shopId`
+  - `DELETE /shops/:shopId`
+- `categories`
+  - `GET /shops/:shopId/categories`
+  - `POST /shops/:shopId/categories`
+  - `PATCH /shops/:shopId/categories/:categoryId`
+  - `DELETE /shops/:shopId/categories/:categoryId`
+- `products`
+  - `GET /shops/:shopId/products`
+  - `POST /shops/:shopId/products`
+  - `PATCH /shops/:shopId/products/:productId`
+  - `DELETE /shops/:shopId/products/:productId`
+- `qr-codes`
+  - `GET /shops/:shopId/qrcodes`
+  - `POST /shops/:shopId/qrcodes`
+  - `PATCH /shops/:shopId/qrcodes/:qrCodeId`
+  - `DELETE /shops/:shopId/qrcodes/:qrCodeId`
+- `users`
+  - `GET /users`
+  - `POST /users`
+  - `GET /users/:userId`
+  - `PATCH /users/:userId`
+  - `DELETE /users/:userId`
+- `audit-logs`
+  - `GET /audit-logs`
+- `public`
+  - `GET /menu/:slug`
+  - `GET /menu/:slug/categories`
+  - `GET /menu/:slug/products`
+  - `GET /menu/:slug/products/:productId`
+  - `POST /menu/:slug/qr-scan`
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+### `apps/customer-web`
 
-```sh
-cd my-turborepo
-turbo login
+Next.js public menu frontend for customer-facing menu browsing.
+
+```text
+apps/customer-web/
+|- app/
+|  |- [slug]/
+|  |  |- loading.tsx
+|  |  |- page.tsx
+|  |  `- products/
+|  |     `- [productId]/
+|  |        |- loading.tsx
+|  |        `- page.tsx
+|  |- globals.css
+|  |- layout.tsx
+|  |- page.tsx
+|  `- providers.tsx
+|- components/
+|  `- menu/
+|- lib/
+|  |- api.ts
+|  |- i18n.ts
+|  |- store/
+|  `- types.ts
+|- public/
+|- .env.example
+|- next.config.ts
+|- package.json
+`- README.md
 ```
 
-Without global `turbo`, use your package manager:
+Current customer web scope:
 
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
+- public menu page at `/:slug`
+- public product detail page at `/:slug/products/:productId`
+- category filter tabs
+- product search
+- Khmer / English copy
+- QR landing support through `?source=qr`
+- loading skeletons and empty states
+
+The app reads public data from `core-api` using:
+
+- `GET /menu/:slug`
+- `GET /menu/:slug/categories`
+- `GET /menu/:slug/products`
+- `GET /menu/:slug/products/:productId`
+- `POST /menu/:slug/qr-scan`
+
+Local env:
+
+```env
+BASE_URL=http://localhost:3333
+PUBLIC_MENU_BASE_URL=http://localhost:4200
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+### `apps/merchant-cms`
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+Nuxt 4 dashboard for both platform admins and merchants. The app now uses real auth against `core-api` and switches between admin and merchant modes based on the authenticated profile.
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
+```text
+apps/merchant-cms/
+|- app/
+|  |- assets/
+|  |  `- css/
+|  |     `- main.css
+|  |- composables/
+|  |  |- useApi.ts
+|  |  |- useApiClient.ts
+|  |  |- usePermissions.ts
+|  |  |- useSelectedShop.ts
+|  |  `- useSession.ts
+|  |- constants/
+|  |  `- user-access.ts
+|  |- layouts/
+|  |  `- dashboard.vue
+|  |- middleware/
+|  |  |- admin.ts
+|  |  |- auth.ts
+|  |  `- merchant.ts
+|  |- pages/
+|  |  |- index.vue
+|  |  |- login.vue
+|  |  |- dashboard.vue
+|  |  |- settings.vue
+|  |  |- products/index.vue
+|  |  |- users/index.vue
+|  |  |- admin/
+|  |  |  |- dashboard.vue
+|  |  |  |- settings.vue
+|  |  |  |- accounts/
+|  |  |  |  |- create.vue
+|  |  |  |  |- index.vue
+|  |  |  |  `- [userId].vue
+|  |  |  `- audit-logs/index.vue
+|  |  `- merchant/
+|  |     |- dashboard.vue
+|  |     |- settings.vue
+|  |     |- subscription.vue
+|  |     `- shops/
+|  |        |- index.vue
+|  |        `- [shopId]/
+|  |           |- categories.vue
+|  |           |- products.vue
+|  |           |- qrcodes.vue
+|  |           `- settings.vue
+|  |- stores/
+|  |  |- auth.ts
+|  |  |- session.ts
+|  |  `- shop.ts
+|  `- app.vue
+|- public/
+|- .env.example
+|- nuxt.config.ts
+|- package.json
+`- tsconfig.json
 ```
 
-Without global `turbo`:
+Current merchant CMS scope:
 
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
+- real login with `POST /auth/login`
+- profile initialization with `GET /auth/me`
+- access token and refresh token session handling
+- permission-based sidebar
+- admin mode and merchant mode
+- shop selection for merchant users
+- admin account management
+- admin audit log list
+- merchant shop, category, product, QR code, and subscription pages
+
+Important note:
+
+- `app/pages/dashboard.vue`, `app/pages/settings.vue`, `app/pages/products/index.vue`, and `app/pages/users/index.vue` are compatibility routes that redirect to the new admin or merchant pages.
+
+Local env:
+
+```env
+NUXT_PUBLIC_API_BASE="http://localhost:3333"
+NUXT_PUBLIC_APP_NAME="Merchant CMS"
 ```
 
-## Useful Links
+### `packages`
 
-Learn more about the power of Turborepo:
+Shared workspace packages:
 
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+- `@kmrs-app/api-client`
+  - typed HTTP client for `core-api`
+  - supports auth, shops, categories, products, QR codes, subscriptions, users, and audit logs
+- `@kmrs-app/types`
+  - shared DTO and response types for auth, shops, subscriptions, users, and audit logs
+- `@kmrs-app/config`
+  - workspace package placeholder for shared config
+- `@kmrs-app/ui`
+  - workspace package placeholder for shared UI
+- `@kmrs-app/utils`
+  - workspace package placeholder for shared helpers
+
+## Database Model
+
+`core-api` currently models:
+
+- `User`
+- `Shop`
+- `ShopMember`
+- `Plan`
+- `Subscription`
+- `Category`
+- `Product`
+- `QrCode`
+- `AuditLog`
+
+Permission model:
+
+- `role`: coarse identity such as `SUPER_ADMIN`, `MERCHANT_OWNER`, `STAFF`
+- `level`: hierarchy control
+  - `1` = highest
+  - `2` = middle
+  - `3` = lowest
+- `permissions: String[]`: feature-level access
+
+Current hierarchy rules:
+
+- level 1 can manage level 2 and level 3
+- level 2 can manage level 3
+- level 3 cannot manage users
+
+## Environment Files
+
+### `apps/core-api/.env.example`
+
+```env
+DATABASE_URL="postgresql://kmrs_user:kmrs_password@localhost:5432/kmrs_dev"
+PORT=3000
+JWT_SECRET="your-super-secret-jwt-key-change-in-production"
+JWT_REFRESH_SECRET="your-super-secret-refresh-key-change-in-production"
+JWT_REFRESH_EXPIRES_IN="30d"
+THROTTLE_TTL_MS=60000
+THROTTLE_LIMIT=120
+AUTH_LOGIN_THROTTLE_TTL_MS=60000
+AUTH_LOGIN_THROTTLE_LIMIT=5
+PUBLIC_MENU_BASE_URL="https://kmrs.app"
+CORS_ORIGINS="http://localhost:3000,http://localhost:3001"
+NODE_ENV="development"
+```
+
+### `apps/customer-web/.env.example`
+
+```env
+BASE_URL=http://localhost:3333
+PUBLIC_MENU_BASE_URL=http://localhost:4200
+```
+
+### `apps/merchant-cms/.env.example`
+
+```env
+NUXT_PUBLIC_API_BASE="http://localhost:3333"
+NUXT_PUBLIC_APP_NAME="Merchant CMS"
+```
+
+## Seed Data
+
+The backend seed creates:
+
+- demo plans
+- demo users
+- demo subscriptions
+- demo shops
+- demo shop members
+- demo categories
+- demo products
+- demo QR codes
+
+Demo credentials:
+
+- `merchant@example.com` / `secret123`
+- `bistro@example.com` / `secret123`
+- `admin@example.com` / `secret123`
+- `staff@example.com` / `secret123`
+
+Demo public menus:
+
+- `/sunrise-cafe`
+- `/moonlight-bistro`
+
+Matching public API endpoints:
+
+- `/menu/sunrise-cafe`
+- `/menu/moonlight-bistro`
+
+## Known Notes
+
+- Prisma migrations must be applied before using the latest auth and user-management code.
+- If login starts returning `429`, the auth login throttler has been hit. Wait for the throttle window or adjust the local env values.
+- `prisma db seed` is not wired through `prisma.config.ts` yet. Use `pnpm --filter core-api prisma:seed`.
+- Redis is started by Docker, but the current backend code path in this repo does not yet document active Redis-backed features at the root level.
+
+## Tech Stack
+
+- Turbo for workspace task orchestration
+- pnpm workspaces for package management
+- NestJS + Prisma + PostgreSQL for `core-api`
+- Next.js for `customer-web`
+- Nuxt 4 + Pinia for `merchant-cms`
+
+## Safety Notes
+
+- Do not commit real secrets to `.env` files.
+- Rotate seeded credentials before any non-local usage.
+- Review CORS, JWT secrets, and throttle values before deploying.

@@ -1,0 +1,208 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  MERCHANT_OWNER
+  STAFF
+}
+
+enum ShopMemberRole {
+  OWNER
+  STAFF
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  PENDING_PAYMENT
+  SUSPENDED
+}
+
+model User {
+  id               String   @id @default(uuid())
+  name             String
+  email            String   @unique
+  password         String
+  refreshTokenHash String?
+  role             UserRole @default(MERCHANT_OWNER)
+
+  // admin hierarchy: 1 highest, 2 middle, 3 lowest
+  level            Int      @default(3)
+
+  // page/action permissions
+  permissions      String[] @default([])
+
+  isActive         Boolean  @default(true)
+  tokenVersion     Int      @default(0)
+  managedById      String?
+
+  managedBy        User?    @relation("UserHierarchy", fields: [managedById], references: [id])
+  managedUsers     User[]   @relation("UserHierarchy")
+  shops            Shop[]
+  shopMemberships  ShopMember[]
+  subscriptions    Subscription[]
+  auditLogs        AuditLog[]
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([role])
+  @@index([level])
+  @@index([isActive])
+  @@index([managedById])
+  @@index([level, isActive])
+}
+
+model Plan {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  price       Decimal @db.Decimal(10, 2)
+
+  maxShops    Int
+  maxProducts Int
+  maxQrCodes  Int
+
+  isActive    Boolean @default(true)
+
+  subscriptions Subscription[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Subscription {
+  id        String             @id @default(uuid())
+  userId    String
+  planId    String
+
+  status    SubscriptionStatus @default(ACTIVE)
+  startedAt DateTime @default(now())
+  expiredAt DateTime?
+
+  user      User @relation(fields: [userId], references: [id])
+  plan      Plan @relation(fields: [planId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Shop {
+  id          String  @id @default(uuid())
+  ownerId     String
+
+  name        String
+  slug        String  @unique
+  description String?
+  logoUrl     String?
+  coverUrl    String?
+  phone       String?
+  address     String?
+  isActive    Boolean @default(true)
+
+  owner       User         @relation(fields: [ownerId], references: [id])
+  members     ShopMember[]
+  categories  Category[]
+  products    Product[]
+  qrCodes     QrCode[]
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model ShopMember {
+  id          String         @id @default(uuid())
+  shopId       String
+  userId       String
+  role         ShopMemberRole @default(STAFF)
+  permissions  String[]       @default([])
+  isActive     Boolean        @default(true)
+
+  shop         Shop          @relation(fields: [shopId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([shopId, userId])
+  @@index([userId])
+  @@index([shopId])
+}
+
+model Category {
+  id        String  @id @default(uuid())
+  shopId    String
+
+  name      String
+  sortOrder Int     @default(0)
+  isActive  Boolean @default(true)
+
+  shop      Shop      @relation(fields: [shopId], references: [id])
+  products  Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id          String  @id @default(uuid())
+  shopId      String
+  categoryId  String
+
+  name        String
+  description String?
+  price       Decimal @db.Decimal(10, 2)
+  imageUrl    String?
+  imageKey    String?
+  isAvailable Boolean @default(true)
+  sortOrder   Int     @default(0)
+
+  shop        Shop     @relation(fields: [shopId], references: [id])
+  category    Category @relation(fields: [categoryId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model QrCode {
+  id        String  @id @default(uuid())
+  shopId    String
+
+  name      String?
+  url       String
+  imageUrl  String?
+  isActive  Boolean @default(true)
+
+  shop      Shop    @relation(fields: [shopId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String
+  entity     String?
+  entityId   String?
+  method     String
+  path       String
+  statusCode Int
+  requestId  String?
+  ip         String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}

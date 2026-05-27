@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+:root {
+  --canvas: #f6f2e9;
+  --ink: #0f172a;
+  --card: #ffffff;
+  --mist: #e2e8f0;
+  --coral: #ea580c;
+  --blue-deep: #172554;
+}
+
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-ink: var(--ink);
+  --color-card: var(--card);
+  --color-mist: var(--mist);
+  --color-coral: var(--coral);
+  --color-blue-deep: var(--blue-deep);
+  --font-sans: var(--font-dm-sans);
+  --font-khmer: var(--font-khmer);
+}
+
+html {
+  background:
+    radial-gradient(circle at top, rgba(249, 115, 22, 0.16), transparent 32%),
+    linear-gradient(180deg, #f9f6ef 0%, #f1ebe0 100%);
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: var(--font-dm-sans), var(--font-khmer), sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+input::-webkit-search-cancel-button {
+  display: none;
+}

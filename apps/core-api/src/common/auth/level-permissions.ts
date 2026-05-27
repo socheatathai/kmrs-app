@@ -1,0 +1,50 @@
+import { ALL_PERMISSIONS, PERMISSIONS, type Permission } from './permissions';
+
+export const LEVELS = {
+  ADMIN_TOP: 1,
+  ADMIN_MIDDLE: 2,
+  STAFF: 3,
+} as const;
+
+export const LEVEL_DEFAULT_PERMISSIONS: Record<number, Permission[]> = {
+  [LEVELS.ADMIN_TOP]: [...ALL_PERMISSIONS],
+  [LEVELS.ADMIN_MIDDLE]: [
+    PERMISSIONS.dashboardView,
+    PERMISSIONS.accountView,
+    PERMISSIONS.accountCreate,
+    PERMISSIONS.accountUpdate,
+    PERMISSIONS.accountDelete,
+    PERMISSIONS.memberView,
+    PERMISSIONS.shopView,
+    PERMISSIONS.shopCreate,
+    PERMISSIONS.shopUpdate,
+    PERMISSIONS.shopSettingsView,
+    PERMISSIONS.shopSettingsUpdate,
+    PERMISSIONS.categoryView,
+    PERMISSIONS.categoryCreate,
+    PERMISSIONS.categoryUpdate,
+    PERMISSIONS.categoryDelete,
+    PERMISSIONS.productView,
+    PERMISSIONS.productCreate,
+    PERMISSIONS.productUpdate,
+    PERMISSIONS.productDelete,
+    PERMISSIONS.qrCodeView,
+    PERMISSIONS.qrCodeCreate,
+    PERMISSIONS.qrCodeUpdate,
+    PERMISSIONS.qrCodeDelete,
+    PERMISSIONS.subscriptionView,
+    PERMISSIONS.settingsView,
+    PERMISSIONS.settingsUpdate,
+    PERMISSIONS.menuView,
+    PERMISSIONS.menuUpdate,
+  ],
+  [LEVELS.STAFF]: [
+    PERMISSIONS.dashboardView,
+    PERMISSIONS.memberView,
+    PERMISSIONS.shopView,
+    PERMISSIONS.categoryView,
+    PERMISSIONS.productView,
+    PERMISSIONS.qrCodeView,
+    PERMISSIONS.menuView,
+  ],
+};
