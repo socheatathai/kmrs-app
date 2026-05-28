@@ -39,15 +39,16 @@ describe('PublicService', () => {
       id: 'shop-1',
       slug: 'sunrise-cafe',
     });
-    prisma.category.findMany = jest
+    const findManyMock = jest
       .fn()
       .mockResolvedValue([
         { id: 'category-1', name: 'Breakfast', sortOrder: 0 },
       ]);
+    prisma.category.findMany = findManyMock;
 
     const result = await service.getCategories('sunrise-cafe');
 
-    expect(prisma.category.findMany).toHaveBeenCalledWith({
+    expect(findManyMock).toHaveBeenCalledWith({
       where: {
         shopId: 'shop-1',
         isActive: true,
@@ -69,7 +70,7 @@ describe('PublicService', () => {
       id: 'shop-1',
       slug: 'sunrise-cafe',
     });
-    prisma.product.findMany = jest.fn().mockResolvedValue([
+    const findManyMock = jest.fn().mockResolvedValue([
       {
         id: 'product-1',
         name: 'Coffee',
@@ -80,10 +81,11 @@ describe('PublicService', () => {
         },
       },
     ]);
+    prisma.product.findMany = findManyMock;
 
     const result = await service.getProducts('sunrise-cafe');
 
-    expect(prisma.product.findMany).toHaveBeenCalledWith({
+    expect(findManyMock).toHaveBeenCalledWith({
       where: {
         shopId: 'shop-1',
         isAvailable: true,

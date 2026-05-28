@@ -176,11 +176,12 @@ describe('AuthService', () => {
 
   it('increments token version on logout', async () => {
     prisma.user.findUnique = jest.fn().mockResolvedValue({ id: 'user-1' });
-    prisma.user.update = jest.fn().mockResolvedValue({ id: 'user-1' });
+    const updateMock = jest.fn().mockResolvedValue({ id: 'user-1' });
+    prisma.user.update = updateMock;
 
     const result = await service.logout('user-1');
 
-    expect(prisma.user.update).toHaveBeenCalledWith({
+    expect(updateMock).toHaveBeenCalledWith({
       where: { id: 'user-1' },
       data: {
         refreshTokenHash: null,

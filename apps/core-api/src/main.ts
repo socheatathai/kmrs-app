@@ -18,13 +18,13 @@ async function bootstrap() {
   );
 
   const configService = app.get(ConfigService);
+  const corsOriginsValue = configService.get<string>('CORS_ORIGINS');
   const corsOrigins =
-    configService
-      .get<string>('CORS_ORIGINS')
+    corsOriginsValue
       ?.split(',')
       .map((origin) => origin.trim())
       .filter(Boolean) ?? [];
-  const port = configService.get<number>('PORT') || 3000;
+  const port = configService.get<number>('PORT') ?? 3000;
 
   app.use(
     helmet({
@@ -34,7 +34,10 @@ async function bootstrap() {
   );
   app.enableCors({
     credentials: true,
-    origin: (origin, callback) => {
+    origin: (
+      origin: string | undefined,
+      callback: (error: Error | null, allow?: boolean) => void,
+    ) => {
       if (!origin || corsOrigins.length === 0 || corsOrigins.includes(origin)) {
         callback(null, true);
         return;

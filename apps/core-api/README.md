@@ -13,10 +13,13 @@ NestJS API for KMRS, backed by Prisma and PostgreSQL.
 
 ## Required Environment
 
-Copy the example file and set real values:
+Use `.env.local` for local development and `.env.production` for production.
+Set `NODE_ENV=production` when you want the app and Prisma to load `.env.production`.
+
+Local development:
 
 ```sh
-Copy-Item .env.example .env
+Copy-Item .env.example .env.local
 ```
 
 Required variables:

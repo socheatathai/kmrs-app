@@ -1,9 +1,14 @@
-import 'dotenv/config';
+import { config as loadEnv } from 'dotenv';
 
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, ShopMemberRole, SubscriptionStatus, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import pg from 'pg';
+
+const isProduction = process.env.NODE_ENV === 'production';
+const envFilePath = isProduction ? '.env.production' : '.env.local';
+
+loadEnv({ path: envFilePath });
 
 const PERMISSIONS = {
   dashboardView: 'dashboard.view',
@@ -351,6 +356,8 @@ async function main() {
       ownerId: merchant.id,
       name: 'Sunrise Cafe',
       description: 'Coffee, brunch, and bakery menu for demo data.',
+      logoUrl: 'https://picsum.photos/id/1062/300/300',
+      coverUrl: 'https://picsum.photos/id/1035/1200/400',
       phone: '+85512345678',
       address: 'Phnom Penh, Cambodia',
       isActive: true,
@@ -360,6 +367,8 @@ async function main() {
       name: 'Sunrise Cafe',
       slug: 'sunrise-cafe',
       description: 'Coffee, brunch, and bakery menu for demo data.',
+      logoUrl: 'https://picsum.photos/id/1062/300/300',
+      coverUrl: 'https://picsum.photos/id/1035/1200/400',
       phone: '+85512345678',
       address: 'Phnom Penh, Cambodia',
       isActive: true,
@@ -372,6 +381,8 @@ async function main() {
       ownerId: secondMerchant.id,
       name: 'Moonlight Bistro',
       description: 'Modern Khmer comfort food and evening drinks.',
+      logoUrl: 'https://picsum.photos/id/292/300/300',
+      coverUrl: 'https://picsum.photos/id/1040/1200/400',
       phone: '+85598765432',
       address: 'Siem Reap, Cambodia',
       isActive: true,
@@ -381,6 +392,8 @@ async function main() {
       name: 'Moonlight Bistro',
       slug: 'moonlight-bistro',
       description: 'Modern Khmer comfort food and evening drinks.',
+      logoUrl: 'https://picsum.photos/id/292/300/300',
+      coverUrl: 'https://picsum.photos/id/1040/1200/400',
       phone: '+85598765432',
       address: 'Siem Reap, Cambodia',
       isActive: true,
@@ -527,6 +540,7 @@ async function main() {
       name: 'Americano',
       description: 'Double espresso with hot water.',
       price: '2.50',
+      imageUrl: 'https://picsum.photos/id/431/600/400',
       sortOrder: 1,
       isAvailable: true,
     },
@@ -537,6 +551,7 @@ async function main() {
       name: 'Iced Latte',
       description: 'Espresso with milk over ice.',
       price: '3.25',
+      imageUrl: 'https://picsum.photos/id/225/600/400',
       sortOrder: 2,
       isAvailable: true,
     },
@@ -547,6 +562,7 @@ async function main() {
       name: 'Avocado Toast',
       description: 'Sourdough, avocado, poached egg, and chili flakes.',
       price: '5.75',
+      imageUrl: 'https://picsum.photos/id/1080/600/400',
       sortOrder: 1,
       isAvailable: true,
     },
@@ -557,6 +573,7 @@ async function main() {
       name: 'Butter Croissant',
       description: 'Flaky laminated pastry baked fresh every morning.',
       price: '2.20',
+      imageUrl: 'https://picsum.photos/id/102/600/400',
       sortOrder: 1,
       isAvailable: true,
     },
@@ -567,6 +584,7 @@ async function main() {
       name: 'Beef Lok Lak',
       description: 'Stir-fried beef with pepper lime sauce and rice.',
       price: '8.50',
+      imageUrl: 'https://picsum.photos/id/292/600/400',
       sortOrder: 1,
       isAvailable: true,
     },
@@ -577,6 +595,7 @@ async function main() {
       name: 'Passion Soda',
       description: 'Sparkling passion fruit cooler.',
       price: '3.75',
+      imageUrl: 'https://picsum.photos/id/429/600/400',
       sortOrder: 1,
       isAvailable: true,
     },
@@ -596,7 +615,7 @@ async function main() {
       shopId: sunriseCafe.id,
       name: 'Counter QR',
       url: 'https://kmrs.app/menu/sunrise-cafe',
-      imageUrl: 'seeded-manually',
+      imageUrl: 'https://picsum.photos/id/237/400/400',
       isActive: true,
     },
     {
@@ -604,7 +623,7 @@ async function main() {
       shopId: sunriseCafe.id,
       name: 'Patio QR',
       url: 'https://kmrs.app/menu/sunrise-cafe',
-      imageUrl: 'seeded-manually',
+      imageUrl: 'https://picsum.photos/id/238/400/400',
       isActive: true,
     },
     {
@@ -612,7 +631,7 @@ async function main() {
       shopId: moonlightBistro.id,
       name: 'Host Stand QR',
       url: 'https://kmrs.app/menu/moonlight-bistro',
-      imageUrl: 'seeded-manually',
+      imageUrl: 'https://picsum.photos/id/239/400/400',
       isActive: true,
     },
   ];
