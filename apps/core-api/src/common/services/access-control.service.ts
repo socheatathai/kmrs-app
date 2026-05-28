@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { ShopMemberRole, UserRole } from '@prisma/client';
+import { ShopMemberRole } from '@prisma/client';
 
 import { LEVEL_DEFAULT_PERMISSIONS, LEVELS } from '../auth/level-permissions';
 import type { Permission } from '../auth/permissions';

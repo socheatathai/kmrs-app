@@ -10,6 +10,11 @@ type AuditContext = {
   error?: string;
 };
 
+type RequestWithUser = Request & { user?: AuthUser };
+type RouteWithPath = {
+  path?: string;
+};
+
 @Injectable()
 export class AuditLogService {
   private readonly logger = new Logger(AuditLogService.name);
@@ -17,7 +22,7 @@ export class AuditLogService {
   constructor(private readonly prisma: PrismaService) {}
 
   recordFromHttp(
-    request: Request & { user?: AuthUser },
+    request: RequestWithUser,
     statusCode: number,
     context: AuditContext,
   ) {
@@ -55,8 +60,10 @@ export class AuditLogService {
       });
   }
 
-  private deriveAction(request: Request) {
-    const segments = (request.route?.path || request.path)
+  private deriveAction(request: RequestWithUser) {
+    const routePath =
+      (request.route as RouteWithPath | undefined)?.path ?? request.path;
+    const segments = routePath
       .split('/')
       .filter(Boolean)
       .filter((segment) => !segment.startsWith(':'));
@@ -82,7 +89,10 @@ export class AuditLogService {
       return (body as Prisma.InputJsonValue | null) ?? null;
     }
 
-    const clone = { ...(body as Record<string, unknown>) };
+    const clone: Record<string, unknown> = { ...body } as Record<
+      string,
+      unknown
+    >;
     delete clone.password;
     delete clone.refreshToken;
 

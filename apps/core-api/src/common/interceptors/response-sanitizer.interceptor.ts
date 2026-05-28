@@ -31,7 +31,7 @@ export class ResponseSanitizerInterceptor implements NestInterceptor {
       return value;
     }
 
-    const prototype = Object.getPrototypeOf(value);
+    const prototype = Object.getPrototypeOf(value) as object | null;
 
     if (prototype !== Object.prototype && prototype !== null) {
       return value;

@@ -5,14 +5,12 @@
   "main": "./index.ts",
   "types": "./index.ts",
   "scripts": {
-    "lint": "eslint .",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@kmrs-app/types": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "^5.4.5",
-    "eslint": "^8.57.0"
+    "typescript": "^5.4.5"
   }
 }
