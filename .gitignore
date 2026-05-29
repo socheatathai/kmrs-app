@@ -14,6 +14,10 @@ out
 generated
 apps/core-api/generated
 
+# Docs
+*.md
+!README.md
+
 # Environment files
 .env
 .env.*

@@ -2,34 +2,38 @@
 
 NestJS API for KMRS, backed by Prisma and PostgreSQL.
 
-## Overview
+## What It Does
 
-- Framework: NestJS
-- Database access: Prisma + PostgreSQL
-- Auth model: JWT bearer auth enabled globally by default
-- Public routes: `POST /auth/register`, `POST /auth/login`, `GET /plans`, `GET /menu/:slug`
-- Docs: `/docs`
-- Localization: `Accept-Language` header with `en` and `km`
+- JWT auth with refresh tokens
+- user hierarchy and permission-based access control
+- shops, categories, products, subscriptions, and QR codes
+- audit logs
+- public menu endpoints by shop slug
+- image upload and removal through DigitalOcean Spaces
+- English and Khmer localization
+- Swagger docs at `/docs`
 
-## Required Environment
+## Environment
 
-Use `.env.local` for local development and `.env.production` for production.
-Set `NODE_ENV=production` when you want the app and Prisma to load `.env.production`.
+The app loads env files through `ConfigModule`:
 
-Local development:
+- non-production: `.env.local` or `apps/core-api/.env.local`
+- production: `.env.production` or `apps/core-api/.env.production`
 
-```sh
+Create a local env file:
+
+```powershell
 Copy-Item .env.example .env.local
 ```
 
-Required variables:
+Minimum required values:
 
 - `DATABASE_URL`
 - `PORT`
 - `JWT_SECRET`
 - `JWT_REFRESH_SECRET`
-- `PUBLIC_MENU_BASE_URL`
 - `CORS_ORIGINS`
+- `PUBLIC_MENU_BASE_URL`
 - `DO_SPACES_ENDPOINT`
 - `DO_SPACES_REGION`
 - `DO_SPACES_BUCKET`
@@ -37,39 +41,12 @@ Required variables:
 - `DO_SPACES_SECRET`
 - `DO_SPACES_PUBLIC_URL`
 
-## Image Uploads
+Recommended local values:
 
-Authenticated users can upload images into `prod` or `uat` folders with:
-
-```sh
-curl -X POST "http://localhost:3000/uploads/images?folder=prod" \
-  -H "Authorization: Bearer <ACCESS_TOKEN>" \
-  -F "file=@./menu-item.webp"
-```
-
-The endpoint accepts multipart field `file`, allows `jpg`, `jpeg`, `png`, and `webp`, and rejects files over 5MB. The API stores binary data in DigitalOcean Spaces and returns only object metadata:
-
-```json
-{
-    "success": true,
-  "data": {
-    "url": "https://kmrs-assets.sgp1.digitaloceanspaces.com/prod/menu-item-uuid.webp",
-    "key": "prod/menu-item-uuid.webp"
-  }
-}
-```
-
-Nuxt merchant CMS usage:
-
-```ts
-const client = useApiClient()
-
-const uploadProductImage = async (file: File) => {
-  const uploaded = await client.uploadImage(file, 'prod')
-
-  form.imageUrl = uploaded.url
-  form.imageKey = uploaded.key
-}
+```env
+PORT=3333
+CORS_ORIGINS="http://localhost:3000,http://localhost:4200"
+PUBLIC_MENU_BASE_URL="http://localhost:4200"
 ```
 
 ## Commands
@@ -77,8 +54,8 @@ const uploadProductImage = async (file: File) => {
 ```sh
 pnpm dev
 pnpm build
-pnpm lint
 pnpm check-types
+pnpm lint
 pnpm test
 pnpm test:e2e
 pnpm prisma:generate
@@ -90,97 +67,160 @@ pnpm prisma:studio
 ## Project Structure
 
 ```text
-src/
-├─ app.module.ts
-├─ main.ts
-├─ auth/
-├─ categories/
-├─ common/
-│  ├─ context/
-│  ├─ decorators/
-│  ├─ filters/
-│  ├─ guards/
-│  ├─ i18n/
-│  ├─ interceptors/
-│  ├─ services/
-│  └─ types/
-├─ plans/
-├─ prisma/
-├─ products/
-├─ public/
-├─ qr-codes/
-├─ shops/
-└─ subscriptions/
-
-prisma/
-├─ migrations/
-├─ schema.prisma
-└─ seed.ts
+apps/core-api/
+|- prisma/
+|  |- migrations/
+|  |- schema.prisma
+|  `- seed.ts
+|- src/
+|  |- common/
+|  |  |- auth/
+|  |  |- context/
+|  |  |- decorators/
+|  |  |- filters/
+|  |  |- guards/
+|  |  |- i18n/
+|  |  |- interceptors/
+|  |  |- pipes/
+|  |  `- services/
+|  |- config/
+|  |- database/
+|  |  `- prisma/
+|  |- modules/
+|  |  |- audit-logs/
+|  |  |- auth/
+|  |  |- categories/
+|  |  |- plans/
+|  |  |- products/
+|  |  |- public/
+|  |  |- qr-codes/
+|  |  |- shops/
+|  |  |- subscriptions/
+|  |  |- uploads/
+|  |  `- users/
+|  |- app.module.ts
+|  `- main.ts
+|- test/
+|- .env.example
+`- package.json
 ```
 
-## Module Responsibilities
+## Main Routes
 
-- `auth`: registration, login, JWT strategy, current-user profile
-- `subscriptions`: merchant plan subscription lifecycle and current subscription lookup
-- `shops`: merchant-owned shop management
-- `categories`: category management under a shop
-- `products`: product management under a shop
-- `uploads`: authenticated image upload to DigitalOcean Spaces
-- `qr-codes`: QR generation and QR resource management
-- `public`: public menu read endpoint by shop slug
-- `common/context`: request-scoped context from headers
-- `common/i18n`: locale loading and translation lookup
-- `common/services/plan-limit.service.ts`: quota enforcement across shops, products, and QR codes
-- `prisma`: Prisma client bootstrap and database access
+Auth:
 
-## Security and Localization
+- `POST /auth/register`
+- `POST /auth/login`
+- `GET /auth/me`
+- `POST /auth/refresh`
+- `POST /auth/logout`
 
-- JWT auth is applied globally through the app guard
-- Use `@Public()` only for endpoints that must bypass auth
-- Protected endpoints require `Authorization: Bearer <token>`
-- Login is rate-limited
-- `helmet` is enabled
-- CORS is restricted by `CORS_ORIGINS`
-- sensitive fields such as `password` are stripped from plain-object responses
-- Error messages are resolved from `Accept-Language`
-- Example header: `Accept-Language: km`
+Catalog and merchant resources:
 
-## API Flow
+- `GET /shops`
+- `POST /shops`
+- `GET /shops/:shopId`
+- `PATCH /shops/:shopId`
+- `DELETE /shops/:shopId`
+- `GET /shops/:shopId/categories`
+- `POST /shops/:shopId/categories`
+- `PATCH /shops/:shopId/categories/:categoryId`
+- `DELETE /shops/:shopId/categories/:categoryId`
+- `GET /shops/:shopId/products`
+- `POST /shops/:shopId/products`
+- `PATCH /shops/:shopId/products/:productId`
+- `DELETE /shops/:shopId/products/:productId`
+- `GET /shops/:shopId/qrcodes`
+- `POST /shops/:shopId/qrcodes`
+- `PATCH /shops/:shopId/qrcodes/:qrCodeId`
+- `DELETE /shops/:shopId/qrcodes/:qrCodeId`
 
-1. `POST /auth/register`
-2. `POST /auth/login`
-3. `GET /plans`
-4. `POST /subscriptions`
-5. `GET /subscriptions/current`
-6. `POST /shops`
-7. `PATCH /shops/:shopId`
-8. `POST /shops/:shopId/categories`
-9. `PATCH /shops/:shopId/categories/:categoryId`
-10. `POST /shops/:shopId/products`
-11. `PATCH /shops/:shopId/products/:productId`
-12. `POST /shops/:shopId/qrcodes`
-13. `PATCH /shops/:shopId/qrcodes/:qrCodeId`
-14. `GET /menu/:slug`
+Plans, subscriptions, users, and logs:
+
+- `GET /plans`
+- `POST /subscriptions`
+- `GET /subscriptions/me`
+- `GET /subscriptions/current`
+- `PATCH /subscriptions/:subscriptionId/cancel`
+- `GET /users`
+- `POST /users`
+- `GET /users/:userId`
+- `PATCH /users/:userId`
+- `DELETE /users/:userId`
+- `GET /audit-logs`
+
+Uploads and public menu:
+
+- `GET /uploads/images?key=prod/example.webp`
+- `POST /uploads/images`
+- `POST /uploads/images/multiple`
+- `DELETE /uploads/images?key=prod/example.webp`
+- `GET /menu/:slug`
+- `GET /menu/:slug/categories`
+- `GET /menu/:slug/products`
+- `GET /menu/:slug/products/:productId`
+- `POST /menu/:slug/qr-scan`
+
+## Image Uploads
+
+Authenticated users can upload images into the `prod` or `uat` folders in DigitalOcean Spaces.
+
+Single upload:
+
+```sh
+curl -X POST "http://localhost:3333/uploads/images?folder=prod" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -F "file=@./menu-item.webp"
+```
+
+Multiple upload:
+
+```sh
+curl -X POST "http://localhost:3333/uploads/images/multiple?folder=uat" \
+  -H "Authorization: Bearer <ACCESS_TOKEN>" \
+  -F "files=@./image-1.webp" \
+  -F "files=@./image-2.webp"
+```
+
+Upload rules:
+
+- field name `file` for single upload
+- field name `files` for multiple upload
+- allowed types: `jpg`, `jpeg`, `png`, `webp`
+- max size: 5 MB per file
+- multiple upload limit: 10 files
+
+Example response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "url": "https://kmrs-assets.sgp1.digitaloceanspaces.com/prod/menu-item-uuid.webp",
+    "key": "prod/menu-item-uuid.webp"
+  }
+}
+```
+
+## Local Development Flow
+
+1. Start PostgreSQL and Redis from the repo root with `docker-compose up -d`.
+2. Create `apps/core-api/.env.local`.
+3. Run `pnpm prisma:generate`.
+4. Run `pnpm prisma:migrate:dev`.
+5. Run `pnpm prisma:seed`.
+6. Start the API with `pnpm dev`.
+7. Open Swagger at `http://localhost:3333/docs` if `PORT=3333`.
 
 ## Demo Seed Data
 
 - `merchant@example.com` / `secret123`
 - `bistro@example.com` / `secret123`
 - `admin@example.com` / `secret123`
-- Demo shop slugs: `sunrise-cafe`, `moonlight-bistro`
-- Public menus: `/menu/sunrise-cafe`, `/menu/moonlight-bistro`
+- `staff@example.com` / `secret123`
 
-## Implemented Modules
+## Notes
 
-- JWT auth with register, login, and current-user profile
-- Request-scoped i18n using JSON locale files and `Accept-Language`
-- Plan listing
-- Merchant subscription creation, lookup, current-state lookup, and cancellation
-- Shop CRUD-style management with plan limit enforcement
-- Category CRUD-style management
-- Product CRUD-style management with account-level plan limit enforcement
-- Authenticated image uploads backed by DigitalOcean Spaces
-- QR code CRUD-style management with account-level plan limit enforcement
-- Shared plan limit enforcement service
-- Public digital menu endpoint by shop slug
-- Security hardening with validation, throttling, `helmet`, CORS allowlisting, and response sanitization
+- The app reads `PORT` from env and logs the Swagger URL at startup.
+- CORS is driven by the comma-separated `CORS_ORIGINS` env var.
+- Upload requests fail at startup if Spaces configuration is incomplete.
