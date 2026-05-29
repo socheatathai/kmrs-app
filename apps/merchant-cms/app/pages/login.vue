@@ -30,7 +30,7 @@ const handleSubmit = async () => {
   <div class="login-shell">
     <div class="login-card">
       <div class="login-header">
-        <p class="eyebrow">Merchant CMS</p>
+        <p class="eyebrow">uat Merchant CMS</p>
         <h1>Sign in to your workspace</h1>
         <p class="muted">Use seeded credentials from `core-api` to load your real profile and permissions.</p>
       </div>
