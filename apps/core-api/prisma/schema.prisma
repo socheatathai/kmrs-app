@@ -6,6 +6,159 @@ datasource db {
   provider = "postgresql"
 }
 
+model User {
+  id               String         @id @default(uuid())
+  name             String
+  email            String         @unique
+  password         String
+  role             UserRole       @default(MERCHANT_OWNER)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  tokenVersion     Int            @default(0)
+  refreshTokenHash String?
+  isActive         Boolean        @default(true)
+  level            Int            @default(3)
+  managedById      String?
+  permissions      String[]       @default([])
+  auditLogs        AuditLog[]
+  shops            Shop[]
+  shopMemberships  ShopMember[]
+  subscriptions    Subscription[]
+  managedBy        User?          @relation("UserHierarchy", fields: [managedById], references: [id])
+  managedUsers     User[]         @relation("UserHierarchy")
+
+  @@index([role])
+  @@index([level])
+  @@index([isActive])
+  @@index([managedById])
+  @@index([level, isActive])
+}
+
+model Plan {
+  id            String         @id @default(uuid())
+  name          String         @unique
+  price         Decimal        @db.Decimal(10, 2)
+  maxShops      Int
+  maxProducts   Int
+  maxQrCodes    Int
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id        String             @id @default(uuid())
+  userId    String
+  planId    String
+  status    SubscriptionStatus @default(ACTIVE)
+  startedAt DateTime           @default(now())
+  expiredAt DateTime?
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+  plan      Plan               @relation(fields: [planId], references: [id])
+  user      User               @relation(fields: [userId], references: [id])
+}
+
+model Shop {
+  id          String       @id @default(uuid())
+  ownerId     String
+  name        String
+  slug        String       @unique
+  description String?
+  logoUrl     String?
+  coverUrl    String?
+  phone       String?
+  address     String?
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  categories  Category[]
+  products    Product[]
+  qrCodes     QrCode[]
+  owner       User         @relation(fields: [ownerId], references: [id])
+  members     ShopMember[]
+}
+
+model ShopMember {
+  id          String         @id @default(uuid())
+  shopId      String
+  userId      String
+  role        ShopMemberRole @default(STAFF)
+  permissions String[]       @default([])
+  isActive    Boolean        @default(true)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  shop        Shop           @relation(fields: [shopId], references: [id])
+  user        User           @relation(fields: [userId], references: [id])
+
+  @@unique([shopId, userId])
+  @@index([userId])
+  @@index([shopId])
+}
+
+model Category {
+  id        String    @id @default(uuid())
+  shopId    String
+  name      String
+  sortOrder Int       @default(0)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  shop      Shop      @relation(fields: [shopId], references: [id])
+  products  Product[]
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  shopId      String
+  categoryId  String
+  name        String
+  description String?
+  price       Decimal  @db.Decimal(10, 2)
+  imageUrl    String?
+  isAvailable Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  imageKey    String?
+  category    Category @relation(fields: [categoryId], references: [id])
+  shop        Shop     @relation(fields: [shopId], references: [id])
+}
+
+model QrCode {
+  id        String   @id @default(uuid())
+  shopId    String
+  name      String?
+  url       String
+  imageUrl  String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  shop      Shop     @relation(fields: [shopId], references: [id])
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String
+  entity     String?
+  entityId   String?
+  method     String
+  path       String
+  statusCode Int
+  requestId  String?
+  ip         String?
+  userAgent  String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
 enum UserRole {
   SUPER_ADMIN
   MERCHANT_OWNER
@@ -23,186 +176,4 @@ enum SubscriptionStatus {
   CANCELLED
   PENDING_PAYMENT
   SUSPENDED
-}
-
-model User {
-  id               String   @id @default(uuid())
-  name             String
-  email            String   @unique
-  password         String
-  refreshTokenHash String?
-  role             UserRole @default(MERCHANT_OWNER)
-
-  // admin hierarchy: 1 highest, 2 middle, 3 lowest
-  level            Int      @default(3)
-
-  // page/action permissions
-  permissions      String[] @default([])
-
-  isActive         Boolean  @default(true)
-  tokenVersion     Int      @default(0)
-  managedById      String?
-
-  managedBy        User?    @relation("UserHierarchy", fields: [managedById], references: [id])
-  managedUsers     User[]   @relation("UserHierarchy")
-  shops            Shop[]
-  shopMemberships  ShopMember[]
-  subscriptions    Subscription[]
-  auditLogs        AuditLog[]
-
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  @@index([role])
-  @@index([level])
-  @@index([isActive])
-  @@index([managedById])
-  @@index([level, isActive])
-}
-
-model Plan {
-  id          String  @id @default(uuid())
-  name        String  @unique
-  price       Decimal @db.Decimal(10, 2)
-
-  maxShops    Int
-  maxProducts Int
-  maxQrCodes  Int
-
-  isActive    Boolean @default(true)
-
-  subscriptions Subscription[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Subscription {
-  id        String             @id @default(uuid())
-  userId    String
-  planId    String
-
-  status    SubscriptionStatus @default(ACTIVE)
-  startedAt DateTime @default(now())
-  expiredAt DateTime?
-
-  user      User @relation(fields: [userId], references: [id])
-  plan      Plan @relation(fields: [planId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Shop {
-  id          String  @id @default(uuid())
-  ownerId     String
-
-  name        String
-  slug        String  @unique
-  description String?
-  logoUrl     String?
-  coverUrl    String?
-  phone       String?
-  address     String?
-  isActive    Boolean @default(true)
-
-  owner       User         @relation(fields: [ownerId], references: [id])
-  members     ShopMember[]
-  categories  Category[]
-  products    Product[]
-  qrCodes     QrCode[]
-
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-}
-
-model ShopMember {
-  id          String         @id @default(uuid())
-  shopId       String
-  userId       String
-  role         ShopMemberRole @default(STAFF)
-  permissions  String[]       @default([])
-  isActive     Boolean        @default(true)
-
-  shop         Shop          @relation(fields: [shopId], references: [id])
-  user         User          @relation(fields: [userId], references: [id])
-
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-
-  @@unique([shopId, userId])
-  @@index([userId])
-  @@index([shopId])
-}
-
-model Category {
-  id        String  @id @default(uuid())
-  shopId    String
-
-  name      String
-  sortOrder Int     @default(0)
-  isActive  Boolean @default(true)
-
-  shop      Shop      @relation(fields: [shopId], references: [id])
-  products  Product[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Product {
-  id          String  @id @default(uuid())
-  shopId      String
-  categoryId  String
-
-  name        String
-  description String?
-  price       Decimal @db.Decimal(10, 2)
-  imageUrl    String?
-  imageKey    String?
-  isAvailable Boolean @default(true)
-  sortOrder   Int     @default(0)
-
-  shop        Shop     @relation(fields: [shopId], references: [id])
-  category    Category @relation(fields: [categoryId], references: [id])
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-}
-
-model QrCode {
-  id        String  @id @default(uuid())
-  shopId    String
-
-  name      String?
-  url       String
-  imageUrl  String?
-  isActive  Boolean @default(true)
-
-  shop      Shop    @relation(fields: [shopId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model AuditLog {
-  id         String   @id @default(uuid())
-  userId     String?
-  action     String
-  entity     String?
-  entityId   String?
-  method     String
-  path       String
-  statusCode Int
-  requestId  String?
-  ip         String?
-  userAgent  String?
-  metadata   Json?
-  createdAt  DateTime @default(now())
-
-  user User? @relation(fields: [userId], references: [id])
-
-  @@index([userId])
-  @@index([action])
-  @@index([createdAt])
 }
