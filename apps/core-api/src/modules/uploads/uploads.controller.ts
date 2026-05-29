@@ -71,7 +71,7 @@ export class UploadsController {
     @UploadedFile(ImageUploadValidationPipe) file: Express.Multer.File,
     @Query() query: UploadImageQueryDto,
   ) {
-    return this.uploadsService.uploadImage(file, query.folder ?? 'products');
+    return this.uploadsService.uploadImage(file, query.folder ?? 'prod');
   }
 
   @Post('images/multiple')
@@ -108,7 +108,7 @@ export class UploadsController {
     @UploadedFiles(ImagesUploadValidationPipe) files: Express.Multer.File[],
     @Query() query: UploadImageQueryDto,
   ) {
-    return this.uploadsService.uploadImages(files, query.folder ?? 'products');
+    return this.uploadsService.uploadImages(files, query.folder ?? 'prod');
   }
 
   @Delete('images')

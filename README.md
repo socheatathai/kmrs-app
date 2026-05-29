@@ -215,10 +215,10 @@ Main modules and routes:
   - `PATCH /users/:userId`
   - `DELETE /users/:userId`
 - `uploads`
-  - `GET /uploads/images?key=products/example.webp`
+  - `GET /uploads/images?key=prod/example.webp`
   - `POST /uploads/images`
   - `POST /uploads/images/multiple`
-  - `DELETE /uploads/images?key=products/example.webp`
+  - `DELETE /uploads/images?key=prod/example.webp`
 - `audit-logs`
   - `GET /audit-logs`
 - `public`

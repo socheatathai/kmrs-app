@@ -1,13 +1,13 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsIn, IsOptional } from 'class-validator';
 
-export const UPLOAD_FOLDERS = ['products', 'shops'] as const;
+export const UPLOAD_FOLDERS = ['prod', 'uat'] as const;
 export type UploadFolder = (typeof UPLOAD_FOLDERS)[number];
 
 export class UploadImageQueryDto {
   @ApiPropertyOptional({
     enum: UPLOAD_FOLDERS,
-    default: 'products',
+    default: 'prod',
     description: 'Destination folder inside the Spaces bucket.',
   })
   @IsOptional()

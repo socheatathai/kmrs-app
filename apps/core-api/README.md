@@ -39,10 +39,10 @@ Required variables:
 
 ## Image Uploads
 
-Authenticated users can upload product and shop images with:
+Authenticated users can upload images into `prod` or `uat` folders with:
 
 ```sh
-curl -X POST "http://localhost:3000/uploads/images?folder=products" \
+curl -X POST "http://localhost:3000/uploads/images?folder=prod" \
   -H "Authorization: Bearer <ACCESS_TOKEN>" \
   -F "file=@./menu-item.webp"
 ```
@@ -51,10 +51,10 @@ The endpoint accepts multipart field `file`, allows `jpg`, `jpeg`, `png`, and `w
 
 ```json
 {
-  "success": true,
+    "success": true,
   "data": {
-    "url": "https://kmrs-assets.sgp1.digitaloceanspaces.com/products/menu-item-uuid.webp",
-    "key": "products/menu-item-uuid.webp"
+    "url": "https://kmrs-assets.sgp1.digitaloceanspaces.com/prod/menu-item-uuid.webp",
+    "key": "prod/menu-item-uuid.webp"
   }
 }
 ```
@@ -65,7 +65,7 @@ Nuxt merchant CMS usage:
 const client = useApiClient()
 
 const uploadProductImage = async (file: File) => {
-  const uploaded = await client.uploadImage(file, 'products')
+  const uploaded = await client.uploadImage(file, 'prod')
 
   form.imageUrl = uploaded.url
   form.imageKey = uploaded.key

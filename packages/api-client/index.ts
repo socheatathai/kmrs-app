@@ -228,7 +228,7 @@ export class ApiClient {
     return this.delete<ProductSummary>(`/shops/${shopId}/products/${productId}`);
   }
 
-  uploadImage(file: File | Blob, folder: 'products' | 'shops' = 'products') {
+  uploadImage(file: File | Blob, folder: 'prod' | 'uat' = 'prod') {
     const formData = new FormData();
     formData.append('file', file);
 
