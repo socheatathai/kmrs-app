@@ -6,7 +6,7 @@ export default function Home() {
       <section className="mx-auto flex w-full max-w-5xl flex-col gap-8 rounded-[2rem] border border-white/60 bg-white/80 p-8 shadow-[0_24px_90px_rgba(15,23,42,0.12)] backdrop-blur md:p-12">
         <div className="space-y-4">
           <p className="text-sm font-semibold uppercase tracking-[0.32em] text-coral">
-            KMRS customer web
+            uat test KMRS customer web
           </p>
           <h1 className="max-w-3xl text-4xl font-semibold tracking-[-0.04em] text-ink md:text-6xl">
             Public menu routes are ready for real shop slugs.
