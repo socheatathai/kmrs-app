@@ -8,10 +8,10 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'https://api.kmrs.tech'
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:3333'
     }
   },
-  
+
   modules: [
     '@nuxt/ui',
     '@pinia/nuxt'
