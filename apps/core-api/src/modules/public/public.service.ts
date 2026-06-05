@@ -2,19 +2,55 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { I18nService } from '../../common/i18n/i18n.service';
 import { DatabaseService } from '../../common/services/database.service';
-import { PublicRepository } from '../../database/repositories';
+import { PrismaService } from '../../database/prisma/prisma.service';
 
 @Injectable()
 export class PublicService {
   constructor(
+    private readonly prisma: PrismaService,
     private readonly database: DatabaseService,
     private readonly i18n: I18nService,
-    private readonly publicRepository: PublicRepository,
   ) {}
 
   async getMenu(slug: string) {
     const shop = await this.database.execute('public.getMenu.findShop', () =>
-      this.publicRepository.findMenuBySlug(slug),
+      this.prisma.shop.findFirst({
+        where: {
+          slug,
+          isActive: true,
+        },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          description: true,
+          logoUrl: true,
+          coverUrl: true,
+          phone: true,
+          address: true,
+          categories: {
+            where: { isActive: true },
+            orderBy: { sortOrder: 'asc' },
+            select: {
+              id: true,
+              name: true,
+              sortOrder: true,
+              products: {
+                where: { isAvailable: true },
+                orderBy: { sortOrder: 'asc' },
+                select: {
+                  id: true,
+                  name: true,
+                  description: true,
+                  price: true,
+                  imageUrl: true,
+                  sortOrder: true,
+                },
+              },
+            },
+          },
+        },
+      }),
     );
 
     if (!shop) {
@@ -28,7 +64,18 @@ export class PublicService {
     const shop = await this.findActiveShopBySlug(slug);
 
     return this.database.execute('public.getCategories', () =>
-      this.publicRepository.findActiveCategoriesByShopId(shop.id),
+      this.prisma.category.findMany({
+        where: {
+          shopId: shop.id,
+          isActive: true,
+        },
+        orderBy: { sortOrder: 'asc' },
+        select: {
+          id: true,
+          name: true,
+          sortOrder: true,
+        },
+      }),
     );
   }
 
@@ -36,13 +83,64 @@ export class PublicService {
     const shop = await this.findActiveShopBySlug(slug);
 
     return this.database.execute('public.getProducts', () =>
-      this.publicRepository.findAvailableProductsByShopId(shop.id),
+      this.prisma.product.findMany({
+        where: {
+          shopId: shop.id,
+          isAvailable: true,
+          category: {
+            isActive: true,
+          },
+        },
+        orderBy: [{ category: { sortOrder: 'asc' } }, { sortOrder: 'asc' }],
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          price: true,
+          imageUrl: true,
+          sortOrder: true,
+          category: {
+            select: {
+              id: true,
+              name: true,
+              sortOrder: true,
+            },
+          },
+        },
+      }),
     );
   }
 
   async getProduct(slug: string, productId: string) {
     const product = await this.database.execute('public.getProduct', () =>
-      this.publicRepository.findAvailableProductBySlugAndId(slug, productId),
+      this.prisma.product.findFirst({
+        where: {
+          id: productId,
+          isAvailable: true,
+          shop: {
+            slug,
+            isActive: true,
+          },
+          category: {
+            isActive: true,
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          price: true,
+          imageUrl: true,
+          sortOrder: true,
+          category: {
+            select: {
+              id: true,
+              name: true,
+              sortOrder: true,
+            },
+          },
+        },
+      }),
     );
 
     if (!product) {
@@ -65,7 +163,17 @@ export class PublicService {
   private async findActiveShopBySlug(slug: string) {
     const shop = await this.database.execute(
       'public.findActiveShopBySlug',
-      () => this.publicRepository.findActiveShopBySlug(slug),
+      () =>
+        this.prisma.shop.findFirst({
+          where: {
+            slug,
+            isActive: true,
+          },
+          select: {
+            id: true,
+            slug: true,
+          },
+        }),
     );
 
     if (!shop) {

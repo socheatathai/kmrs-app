@@ -1,18 +1,21 @@
 import { Injectable } from '@nestjs/common';
 
 import { DatabaseService } from '../../common/services/database.service';
-import { PlansRepository } from '../../database/repositories';
+import { PrismaService } from '../../database/prisma/prisma.service';
 
 @Injectable()
 export class PlansService {
   constructor(
+    private readonly prisma: PrismaService,
     private readonly database: DatabaseService,
-    private readonly plansRepository: PlansRepository,
   ) {}
 
   findAll() {
     return this.database.execute('plans.findAll', () =>
-      this.plansRepository.findActivePlans(),
+      this.prisma.plan.findMany({
+        where: { isActive: true },
+        orderBy: { price: 'asc' },
+      }),
     );
   }
 }

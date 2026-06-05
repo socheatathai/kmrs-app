@@ -3,6 +3,7 @@ import type {
   ApiSuccessResponse,
   AuditLogItem,
   AuthResponse,
+  AuthUserProfile,
   CancelSubscriptionRequest,
   CategorySummary,
   CreateManagedUserRequest,
@@ -17,7 +18,6 @@ import type {
   QrCodeSummary,
   RefreshTokenRequest,
   RegisterRequest,
-  SessionResponse,
   ShopDetail,
   ShopSummary,
   SubscriptionSummary,
@@ -148,8 +148,8 @@ export class ApiClient {
     return this.post<AuthResponse>('/auth/refresh', payload);
   }
 
-  getSession() {
-    return this.get<SessionResponse>('/auth/session');
+  getMe() {
+    return this.get<AuthUserProfile>('/auth/me');
   }
 
   logout() {

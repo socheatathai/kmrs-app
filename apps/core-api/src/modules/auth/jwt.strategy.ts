@@ -3,14 +3,15 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 
+import type { Permission } from '../../common/auth/permissions';
 import type { AuthUser } from '../../common/types/auth-user.type';
-import { UsersRepository } from '../../database/repositories';
+import { PrismaService } from '../../database/prisma/prisma.service';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     configService: ConfigService,
-    private readonly usersRepository: UsersRepository,
+    private readonly prisma: PrismaService,
   ) {
     const secret = configService.get<string>('JWT_SECRET');
 
@@ -26,7 +27,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: AuthUser): Promise<AuthUser> {
-    const user = await this.usersRepository.findUserTokenStateById(payload.sub);
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        level: true,
+        permissions: true,
+        isActive: true,
+        tokenVersion: true,
+      },
+    });
 
     if (!user || !user.isActive || user.tokenVersion !== payload.tokenVersion) {
       throw new UnauthorizedException('Invalid token');
@@ -37,6 +49,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       email: user.email,
       role: user.role,
       level: user.level,
+      permissions: user.permissions as Permission[],
       tokenVersion: user.tokenVersion,
     };
   }

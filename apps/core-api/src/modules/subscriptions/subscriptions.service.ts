@@ -8,27 +8,29 @@ import { SubscriptionStatus } from '@prisma/client';
 import { I18nService } from '../../common/i18n/i18n.service';
 import { DatabaseService } from '../../common/services/database.service';
 import { SubscriptionAccessService } from '../../common/services/subscription-access.service';
-import {
-  PlansRepository,
-  SubscriptionsRepository,
-} from '../../database/repositories';
+import { PrismaService } from '../../database/prisma/prisma.service';
 import { CancelSubscriptionDto } from './dto/cancel-subscription.dto';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 
 @Injectable()
 export class SubscriptionsService {
   constructor(
+    private readonly prisma: PrismaService,
     private readonly database: DatabaseService,
     private readonly subscriptionAccessService: SubscriptionAccessService,
     private readonly i18n: I18nService,
-    private readonly subscriptionsRepository: SubscriptionsRepository,
-    private readonly plansRepository: PlansRepository,
   ) {}
 
   async create(userId: string, dto: CreateSubscriptionDto, language?: string) {
     const plan = await this.database.execute(
       'subscriptions.create.findPlan',
-      () => this.plansRepository.findActivePlanById(dto.planId),
+      () =>
+        this.prisma.plan.findFirst({
+          where: {
+            id: dto.planId,
+            isActive: true,
+          },
+        }),
     );
 
     if (!plan) {
@@ -43,7 +45,14 @@ export class SubscriptionsService {
 
     const activeSubscription = await this.database.execute(
       'subscriptions.create.findActiveSubscription',
-      () => this.subscriptionsRepository.findActiveByUserId(userId),
+      () =>
+        this.prisma.subscription.findFirst({
+          where: {
+            userId,
+            status: SubscriptionStatus.ACTIVE,
+            OR: [{ expiredAt: null }, { expiredAt: { gt: new Date() } }],
+          },
+        }),
     );
 
     if (activeSubscription) {
@@ -53,24 +62,54 @@ export class SubscriptionsService {
     }
 
     return this.database.execute('subscriptions.create.transaction', () =>
-      this.subscriptionsRepository.createActiveForUser(
-        userId,
-        dto.planId,
-        dto.expiredAt ? new Date(dto.expiredAt) : null,
-      ),
+      this.prisma.$transaction(async (tx) => {
+        await tx.subscription.updateMany({
+          where: {
+            userId,
+            status: SubscriptionStatus.ACTIVE,
+            expiredAt: { lte: new Date() },
+          },
+          data: { status: SubscriptionStatus.EXPIRED },
+        });
+
+        return tx.subscription.create({
+          data: {
+            userId,
+            planId: dto.planId,
+            status: SubscriptionStatus.ACTIVE,
+            expiredAt: dto.expiredAt ? new Date(dto.expiredAt) : null,
+          },
+          include: {
+            plan: true,
+          },
+        });
+      }),
     );
   }
 
   findMine(userId: string) {
     return this.database.execute('subscriptions.findMine', () =>
-      this.subscriptionsRepository.findManyByUserId(userId),
+      this.prisma.subscription.findMany({
+        where: { userId },
+        include: { plan: true },
+        orderBy: { createdAt: 'desc' },
+      }),
     );
   }
 
   async findCurrent(userId: string, language?: string) {
     const subscription = await this.database.execute(
       'subscriptions.findCurrent',
-      () => this.subscriptionsRepository.findActiveWithPlanByUserId(userId),
+      () =>
+        this.prisma.subscription.findFirst({
+          where: {
+            userId,
+            status: SubscriptionStatus.ACTIVE,
+            OR: [{ expiredAt: null }, { expiredAt: { gt: new Date() } }],
+          },
+          include: { plan: true },
+          orderBy: { createdAt: 'desc' },
+        }),
     );
 
     if (!subscription) {
@@ -94,7 +133,13 @@ export class SubscriptionsService {
   ) {
     const subscription = await this.database.execute(
       'subscriptions.cancel.findSubscription',
-      () => this.subscriptionsRepository.findByIdForUser(subscriptionId, userId),
+      () =>
+        this.prisma.subscription.findFirst({
+          where: {
+            id: subscriptionId,
+            userId,
+          },
+        }),
     );
 
     if (!subscription) {
@@ -114,10 +159,14 @@ export class SubscriptionsService {
     return this.database.execute(
       'subscriptions.cancel.updateSubscription',
       () =>
-        this.subscriptionsRepository.cancelById(
-          subscriptionId,
-          subscription.expiredAt ?? updatedAt,
-        ),
+        this.prisma.subscription.update({
+          where: { id: subscriptionId },
+          data: {
+            status: SubscriptionStatus.CANCELLED,
+            expiredAt: subscription.expiredAt ?? updatedAt,
+          },
+          include: { plan: true },
+        }),
     );
   }
 }

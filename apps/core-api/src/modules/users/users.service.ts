@@ -14,29 +14,41 @@ import { I18nService } from '../../common/i18n/i18n.service';
 import { DatabaseService } from '../../common/services/database.service';
 import { LevelHierarchyService } from '../../common/services/level-hierarchy.service';
 import type { AuthUser } from '../../common/types/auth-user.type';
-import { UsersRepository } from '../../database/repositories';
+import { PrismaService } from '../../database/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
   constructor(
+    private readonly prisma: PrismaService,
     private readonly database: DatabaseService,
     private readonly levelHierarchy: LevelHierarchyService,
     private readonly i18n: I18nService,
-    private readonly usersRepository: UsersRepository,
   ) {}
 
   async findManageableUsers(user: AuthUser, language?: string) {
     if (user.level === LEVELS.ADMIN_TOP) {
       return this.database.execute('users.findManageableUsers.top', () =>
-        this.usersRepository.findManageableUsersForAdminTop(user.sub),
+        this.prisma.user.findMany({
+          where: {
+            id: { not: user.sub },
+          },
+          select: this.userListSelect(),
+          orderBy: [{ level: 'asc' }, { createdAt: 'desc' }],
+        }),
       );
     }
 
     if (user.level === LEVELS.ADMIN_MIDDLE) {
       return this.database.execute('users.findManageableUsers.middle', () =>
-        this.usersRepository.findManageableUsersForAdminMiddle(user.sub),
+        this.prisma.user.findMany({
+          where: {
+            managedById: user.sub,
+          },
+          select: this.userListSelect(),
+          orderBy: [{ level: 'asc' }, { createdAt: 'desc' }],
+        }),
       );
     }
 
@@ -52,7 +64,11 @@ export class UsersService {
 
     const existingUser = await this.database.execute(
       'users.create.findByEmail',
-      () => this.usersRepository.findUserByEmail(dto.email),
+      () =>
+        this.prisma.user.findUnique({
+          where: { email: dto.email },
+          select: { id: true },
+        }),
     );
 
     if (existingUser) {
@@ -62,17 +78,20 @@ export class UsersService {
     const password = await bcrypt.hash(dto.password, 10);
 
     return this.database.execute('users.create', () =>
-      this.usersRepository.create({
-        name: dto.name,
-        email: dto.email,
-        password,
-        role: dto.role,
-        level: dto.level,
-        permissions: dto.permissions?.length
-          ? dto.permissions
-          : [...(LEVEL_DEFAULT_PERMISSIONS[dto.level] ?? [])],
-        managedById: actor.sub,
-        isActive: true,
+      this.prisma.user.create({
+        data: {
+          name: dto.name,
+          email: dto.email,
+          password,
+          role: dto.role,
+          level: dto.level,
+          permissions: dto.permissions?.length
+            ? dto.permissions
+            : [...(LEVEL_DEFAULT_PERMISSIONS[dto.level] ?? [])],
+          managedById: actor.sub,
+          isActive: true,
+        },
+        select: this.userListSelect(),
       }),
     );
   }
@@ -98,10 +117,13 @@ export class UsersService {
     }
 
     if (dto.email && dto.email !== target.email) {
-      const email = dto.email;
       const existingUser = await this.database.execute(
         'users.update.findByEmail',
-        () => this.usersRepository.findUserByEmail(email),
+        () =>
+          this.prisma.user.findUnique({
+            where: { email: dto.email },
+            select: { id: true },
+          }),
       );
 
       if (existingUser) {
@@ -122,7 +144,11 @@ export class UsersService {
     }
 
     return this.database.execute('users.update', () =>
-      this.usersRepository.update(userId, updateData),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+        select: this.userListSelect(),
+      }),
     );
   }
 
@@ -130,7 +156,10 @@ export class UsersService {
     await this.findTargetUser(actor, userId, language);
 
     return this.database.execute('users.remove', () =>
-      this.usersRepository.delete(userId),
+      this.prisma.user.delete({
+        where: { id: userId },
+        select: this.userListSelect(),
+      }),
     );
   }
 
@@ -140,7 +169,14 @@ export class UsersService {
     language?: string,
   ) {
     const target = await this.database.execute('users.findTargetUser', () =>
-      this.usersRepository.findManagedTargetById(userId),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          ...this.userListSelect(),
+          managedById: true,
+          permissions: true,
+        },
+      }),
     );
 
     if (!target) {
@@ -161,5 +197,20 @@ export class UsersService {
     }
 
     return target;
+  }
+
+  private userListSelect() {
+    return {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      level: true,
+      permissions: true,
+      isActive: true,
+      managedById: true,
+      createdAt: true,
+      updatedAt: true,
+    } as const;
   }
 }

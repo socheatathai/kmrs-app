@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const session = useSessionStore()
+const auth = useAuthStore()
 
 definePageMeta({
   layout: 'dashboard',
@@ -20,15 +20,15 @@ definePageMeta({
     <div class="info-list">
       <div class="info-item">
         <span class="eyebrow">Signed in as</span>
-        <strong>{{ session.user?.email }}</strong>
+        <strong>{{ auth.user?.email }}</strong>
       </div>
       <div class="info-item">
         <span class="eyebrow">Role</span>
-        <strong>{{ session.user?.role }}</strong>
+        <strong>{{ auth.user?.role }}</strong>
       </div>
       <div class="info-item">
         <span class="eyebrow">Level</span>
-        <strong>{{ session.user?.level }}</strong>
+        <strong>{{ auth.user?.level }}</strong>
       </div>
     </div>
   </section>

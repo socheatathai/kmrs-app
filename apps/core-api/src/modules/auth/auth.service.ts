@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { UserRole } from '@prisma/client';
+import { User, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 import { DatabaseService } from '../../common/services/database.service';
@@ -15,24 +15,20 @@ import {
   LEVEL_DEFAULT_PERMISSIONS,
   LEVELS,
 } from '../../common/auth/level-permissions';
-import {
-  resolveAllowedMenus,
-  type DashboardMode,
-} from '../../common/auth/menus';
 import { I18nService } from '../../common/i18n/i18n.service';
-import { AuthRepository } from '../../database/repositories';
+import { PrismaService } from '../../database/prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
 @Injectable()
 export class AuthService {
   constructor(
+    private readonly prisma: PrismaService,
     private readonly database: DatabaseService,
     private readonly accessControl: AccessControlService,
     private readonly jwtService: JwtService,
     private readonly i18n: I18nService,
     private readonly configService: ConfigService,
-    private readonly authRepository: AuthRepository,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -44,7 +40,10 @@ export class AuthService {
 
     const existingUser = await this.database.execute(
       'auth.register.findUser',
-      () => this.authRepository.findUserByEmail(dto.email),
+      () =>
+        this.prisma.user.findUnique({
+          where: { email: dto.email },
+        }),
     );
 
     if (existingUser) {
@@ -53,21 +52,26 @@ export class AuthService {
 
     const password = await bcrypt.hash(dto.password, 10);
     const user = await this.database.execute('auth.register.createUser', () =>
-      this.authRepository.createMerchantOwner({
-        name: dto.name,
-        email: dto.email,
-        password,
-        level: LEVELS.ADMIN_MIDDLE,
-        permissions: [...LEVEL_DEFAULT_PERMISSIONS[LEVELS.ADMIN_MIDDLE]],
+      this.prisma.user.create({
+        data: {
+          name: dto.name,
+          email: dto.email,
+          password,
+          role: UserRole.MERCHANT_OWNER,
+          level: LEVELS.ADMIN_MIDDLE,
+          permissions: [...LEVEL_DEFAULT_PERMISSIONS[LEVELS.ADMIN_MIDDLE]],
+        },
       }),
     );
 
-    return this.issueTokens(user);
+    return this.buildAuthResponse(user);
   }
 
   async login(dto: LoginDto) {
     const user = await this.database.execute('auth.login.findUser', () =>
-      this.authRepository.findUserByEmail(dto.email),
+      this.prisma.user.findUnique({
+        where: { email: dto.email },
+      }),
     );
 
     if (!user) {
@@ -84,7 +88,7 @@ export class AuthService {
       throw new UnauthorizedException(this.i18n.t('auth.invalidCredentials'));
     }
 
-    return this.issueTokens(user);
+    return this.buildAuthResponse(user);
   }
 
   async refresh(refreshToken: string) {
@@ -119,7 +123,9 @@ export class AuthService {
     }
 
     const user = await this.database.execute('auth.refresh.findUser', () =>
-      this.authRepository.findUserTokenStateById(payload.sub),
+      this.prisma.user.findUnique({
+        where: { id: payload.sub },
+      }),
     );
 
     if (
@@ -139,15 +145,27 @@ export class AuthService {
       throw new UnauthorizedException(this.i18n.t('auth.invalidCredentials'));
     }
 
-    return this.issueTokens(user);
+    return this.buildAuthResponse(user);
   }
 
-  async getSession(userId: string) {
-    const user = await this.database.execute('auth.session.findUser', () =>
-      this.authRepository.findUserForSession(userId),
+  async me(userId: string) {
+    const user = await this.database.execute('auth.me.findUser', () =>
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          role: true,
+          level: true,
+          permissions: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      }),
     );
 
-    if (!user || !user.isActive) {
+    if (!user) {
       throw new UnauthorizedException(this.i18n.t('auth.userNotFound'));
     }
 
@@ -156,27 +174,19 @@ export class AuthService {
       user.level,
     );
 
-    const mode: DashboardMode =
-      user.role === UserRole.SUPER_ADMIN ? 'admin' : 'merchant';
-    const allowedMenus = resolveAllowedMenus(mode, access.permissions);
-
     return {
-      user: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        level: user.level,
-      },
+      ...user,
       permissions: access.permissions,
-      allowedMenus,
       accessibleShops: access.shops,
     };
   }
 
   async logout(userId: string) {
     const user = await this.database.execute('auth.logout.findUser', () =>
-      this.authRepository.findUserById(userId),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true },
+      }),
     );
 
     if (!user) {
@@ -184,7 +194,15 @@ export class AuthService {
     }
 
     await this.database.execute('auth.logout.bumpTokenVersion', () =>
-      this.authRepository.revokeUserTokens(userId),
+      this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          refreshTokenHash: null,
+          tokenVersion: {
+            increment: 1,
+          },
+        },
+      }),
     );
 
     return {
@@ -192,13 +210,11 @@ export class AuthService {
     };
   }
 
-  private async issueTokens(user: {
-    id: string;
-    email: string;
-    role: UserRole;
-    level: number;
-    tokenVersion: number;
-  }) {
+  private async buildAuthResponse(user: User) {
+    const access = await this.accessControl.getAccessProfile(
+      user.id,
+      user.level,
+    );
     const accessPayload = {
       sub: user.id,
       email: user.email,
@@ -227,15 +243,26 @@ export class AuthService {
     });
 
     await this.database.execute('auth.tokens.storeRefreshToken', async () => {
-      await this.authRepository.updateRefreshTokenHash(
-        user.id,
-        await bcrypt.hash(refreshToken, 10),
-      );
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          refreshTokenHash: await bcrypt.hash(refreshToken, 10),
+        },
+      });
     });
 
     return {
       accessToken: this.jwtService.sign(accessPayload),
       refreshToken,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        level: user.level,
+        permissions: access.permissions,
+        accessibleShops: access.shops,
+      },
     };
   }
 }

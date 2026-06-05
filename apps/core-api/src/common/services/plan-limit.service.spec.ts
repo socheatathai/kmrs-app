@@ -1,16 +1,17 @@
 import { ForbiddenException } from '@nestjs/common';
 
-import {
-  ProductsRepository,
-  QrCodesRepository,
-  ShopsRepository,
-} from '../../database/repositories';
+import { PrismaService } from '../../database/prisma/prisma.service';
 import { I18nService } from '../i18n/i18n.service';
 import { DatabaseService } from './database.service';
 import { PlanLimitService } from './plan-limit.service';
 import { SubscriptionAccessService } from './subscription-access.service';
 
 describe('PlanLimitService', () => {
+  const prisma = {
+    shop: { count: jest.fn() },
+    product: { count: jest.fn() },
+    qrCode: { count: jest.fn() },
+  } as unknown as PrismaService;
   const database = {
     execute: jest.fn(
       async (_operation: string, handler: () => Promise<unknown>) => handler(),
@@ -22,27 +23,16 @@ describe('PlanLimitService', () => {
   const i18n = {
     t: jest.fn((key: string) => key),
   } as unknown as I18nService;
-  const shopsRepository = {
-    countActiveByOwnerId: jest.fn(),
-  } as unknown as ShopsRepository;
-  const productsRepository = {
-    countByOwnerId: jest.fn(),
-  } as unknown as ProductsRepository;
-  const qrCodesRepository = {
-    countByOwnerId: jest.fn(),
-  } as unknown as QrCodesRepository;
 
   let service: PlanLimitService;
 
   beforeEach(() => {
     jest.clearAllMocks();
     service = new PlanLimitService(
+      prisma,
       database,
       subscriptionAccessService,
       i18n,
-      shopsRepository,
-      productsRepository,
-      qrCodesRepository,
     );
   });
 
@@ -50,7 +40,7 @@ describe('PlanLimitService', () => {
     subscriptionAccessService.getActivePlan = jest.fn().mockResolvedValue({
       maxShops: 1,
     });
-    shopsRepository.countActiveByOwnerId = jest.fn().mockResolvedValue(1);
+    prisma.shop.count = jest.fn().mockResolvedValue(1);
 
     await expect(
       service.assertCanCreateShop('merchant-1'),
@@ -61,7 +51,7 @@ describe('PlanLimitService', () => {
     subscriptionAccessService.getActivePlan = jest.fn().mockResolvedValue({
       maxProducts: 10,
     });
-    productsRepository.countByOwnerId = jest.fn().mockResolvedValue(3);
+    prisma.product.count = jest.fn().mockResolvedValue(3);
 
     await expect(
       service.assertCanCreateProduct('merchant-1'),

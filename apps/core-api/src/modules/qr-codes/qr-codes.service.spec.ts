@@ -7,7 +7,7 @@ import { I18nService } from '../../common/i18n/i18n.service';
 import { DatabaseService } from '../../common/services/database.service';
 import { PlanLimitService } from '../../common/services/plan-limit.service';
 import type { AuthUser } from '../../common/types/auth-user.type';
-import { QrCodesRepository } from '../../database/repositories';
+import { PrismaService } from '../../database/prisma/prisma.service';
 import { ShopsService } from '../shops/shops.service';
 import { QrCodesService } from './qr-codes.service';
 
@@ -16,6 +16,15 @@ jest.mock('qrcode', () => ({
 }));
 
 describe('QrCodesService', () => {
+  const prisma = {
+    qrCode: {
+      create: jest.fn(),
+      findFirst: jest.fn(),
+      findMany: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+    },
+  } as unknown as PrismaService;
   const database = {
     execute: jest.fn(
       async (_operation: string, handler: () => Promise<unknown>) => handler(),
@@ -33,9 +42,6 @@ describe('QrCodesService', () => {
   const i18n = {
     t: jest.fn((key: string) => key),
   } as unknown as I18nService;
-  const qrCodesRepository = {
-    create: jest.fn(),
-  } as unknown as QrCodesRepository;
 
   let service: QrCodesService;
   const user: AuthUser = {
@@ -43,18 +49,19 @@ describe('QrCodesService', () => {
     email: 'merchant@example.com',
     role: 'MERCHANT_OWNER',
     level: 2,
+    permissions: [],
     tokenVersion: 0,
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
     service = new QrCodesService(
+      prisma,
       database,
       shopsService,
       planLimitService,
       configService,
       i18n,
-      qrCodesRepository,
     );
   });
 
@@ -71,9 +78,11 @@ describe('QrCodesService', () => {
     (QRCode.toDataURL as jest.Mock).mockResolvedValue(
       'data:image/png;base64,abc',
     );
-    qrCodesRepository.create = jest
+    prisma.qrCode.create = jest
       .fn()
-      .mockImplementation((data: QrCode) => Promise.resolve(data));
+      .mockImplementation(({ data }: { data: QrCode }) =>
+        Promise.resolve(data),
+      );
 
     const result = await service.create(
       user,

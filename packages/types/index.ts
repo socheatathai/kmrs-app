@@ -38,39 +38,16 @@ export interface AccessibleShop {
   permissions: Permission[];
 }
 
-export interface SessionUser {
+export interface AuthUserProfile {
   id: string;
   name: string;
   email: string;
   role: UserRole;
   level: number;
-}
-
-export interface AllowedMenuChild {
-  key: string;
-  label: string;
-  icon: string;
-  path: string;
-  permission?: Permission;
-  requiresShop?: boolean;
-}
-
-export interface AllowedMenu {
-  key: string;
-  label: string;
-  icon: string;
-  mode: DashboardMode;
-  path?: string;
-  permission?: Permission;
-  requiresShop?: boolean;
-  children?: AllowedMenuChild[];
-}
-
-export interface SessionResponse {
-  user: SessionUser;
   permissions: Permission[];
-  allowedMenus: AllowedMenu[];
   accessibleShops: AccessibleShop[];
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ManagedUserSummary {
@@ -104,6 +81,7 @@ export interface RefreshTokenRequest {
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
+  user: AuthUserProfile;
 }
 
 export interface PlanSummary {

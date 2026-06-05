@@ -52,13 +52,11 @@ export class AuthController {
   }
 
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get the latest authenticated session state' })
-  @ApiOkResponse({
-    description: 'Current user, permissions, allowed menus, and shops',
-  })
-  @Get('session')
-  session(@CurrentUser() user: AuthUser) {
-    return this.authService.getSession(user.sub);
+  @ApiOperation({ summary: 'Get current authenticated user' })
+  @ApiOkResponse({ description: 'Current user profile' })
+  @Get('me')
+  me(@CurrentUser() user: AuthUser) {
+    return this.authService.me(user.sub);
   }
 
   @Public()

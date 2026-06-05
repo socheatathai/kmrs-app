@@ -10,35 +10,50 @@ import { AccessControlService } from '../../common/services/access-control.servi
 import { DatabaseService } from '../../common/services/database.service';
 import type { AuthUser } from '../../common/types/auth-user.type';
 import { PlanLimitService } from '../../common/services/plan-limit.service';
-import { ShopsRepository } from '../../database/repositories';
+import { PrismaService } from '../../database/prisma/prisma.service';
 import { CreateShopDto } from './dto/create-shop.dto';
 import { UpdateShopDto } from './dto/update-shop.dto';
 
 @Injectable()
 export class ShopsService {
   constructor(
+    private readonly prisma: PrismaService,
     private readonly database: DatabaseService,
     private readonly accessControl: AccessControlService,
     private readonly planLimitService: PlanLimitService,
     private readonly i18n: I18nService,
-    private readonly shopsRepository: ShopsRepository,
   ) {}
 
   async findMine(user: AuthUser) {
     if (user.role === 'SUPER_ADMIN') {
       return this.database.execute('shops.findMine.all', () =>
-        this.shopsRepository.findAll(),
+        this.prisma.shop.findMany({
+          orderBy: { createdAt: 'desc' },
+        }),
       );
     }
 
     if (user.role === 'MERCHANT_OWNER') {
       return this.database.execute('shops.findMine.owner', () =>
-        this.shopsRepository.findManyByOwnerId(user.sub),
+        this.prisma.shop.findMany({
+          where: { ownerId: user.sub },
+          orderBy: { createdAt: 'desc' },
+        }),
       );
     }
 
     return this.database.execute('shops.findMine.staff', () =>
-      this.shopsRepository.findManyByMemberUserId(user.sub),
+      this.prisma.shop.findMany({
+        where: {
+          members: {
+            some: {
+              userId: user.sub,
+              isActive: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
     );
   }
 
@@ -53,7 +68,10 @@ export class ShopsService {
 
     const existingSlug = await this.database.execute(
       'shops.create.findSlug',
-      () => this.shopsRepository.findBySlug(dto.slug),
+      () =>
+        this.prisma.shop.findUnique({
+          where: { slug: dto.slug },
+        }),
     );
 
     if (existingSlug) {
@@ -61,9 +79,11 @@ export class ShopsService {
     }
 
     return this.database.execute('shops.create', () =>
-      this.shopsRepository.create({
-        ownerId: user.sub,
-        ...dto,
+      this.prisma.shop.create({
+        data: {
+          ownerId: user.sub,
+          ...dto,
+        },
       }),
     );
   }
@@ -77,7 +97,21 @@ export class ShopsService {
     );
 
     const shop = await this.database.execute('shops.findOneForOwner', () =>
-      this.shopsRepository.findDetailById(shopId),
+      this.prisma.shop.findUnique({
+        where: {
+          id: shopId,
+        },
+        include: {
+          categories: {
+            where: { isActive: true },
+            orderBy: { sortOrder: 'asc' },
+          },
+          products: {
+            orderBy: { sortOrder: 'asc' },
+          },
+          qrCodes: true,
+        },
+      }),
     );
 
     if (!shop) {
@@ -101,13 +135,15 @@ export class ShopsService {
     );
 
     if (dto.slug) {
-      const slug = dto.slug;
       const existingSlug = await this.database.execute(
         'shops.update.findSlug',
-        async () => {
-          const shop = await this.shopsRepository.findBySlug(slug);
-          return shop?.id === shopId ? null : shop;
-        },
+        () =>
+          this.prisma.shop.findFirst({
+            where: {
+              slug: dto.slug,
+              id: { not: shopId },
+            },
+          }),
       );
 
       if (existingSlug) {
@@ -116,7 +152,10 @@ export class ShopsService {
     }
 
     return this.database.execute('shops.update', () =>
-      this.shopsRepository.update(shopId, dto),
+      this.prisma.shop.update({
+        where: { id: shopId },
+        data: dto,
+      }),
     );
   }
 
@@ -129,7 +168,10 @@ export class ShopsService {
     );
 
     return this.database.execute('shops.archive', () =>
-      this.shopsRepository.update(shopId, { isActive: false }),
+      this.prisma.shop.update({
+        where: { id: shopId },
+        data: { isActive: false },
+      }),
     );
   }
 

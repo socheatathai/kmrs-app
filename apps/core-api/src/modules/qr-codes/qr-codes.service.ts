@@ -12,7 +12,7 @@ import { I18nService } from '../../common/i18n/i18n.service';
 import { DatabaseService } from '../../common/services/database.service';
 import { PlanLimitService } from '../../common/services/plan-limit.service';
 import type { AuthUser } from '../../common/types/auth-user.type';
-import { QrCodesRepository } from '../../database/repositories';
+import { PrismaService } from '../../database/prisma/prisma.service';
 import { ShopsService } from '../shops/shops.service';
 import { CreateQrCodeDto } from './dto/create-qr-code.dto';
 import { UpdateQrCodeDto } from './dto/update-qr-code.dto';
@@ -20,12 +20,12 @@ import { UpdateQrCodeDto } from './dto/update-qr-code.dto';
 @Injectable()
 export class QrCodesService {
   constructor(
+    private readonly prisma: PrismaService,
     private readonly database: DatabaseService,
     private readonly shopsService: ShopsService,
     private readonly planLimitService: PlanLimitService,
     private readonly configService: ConfigService,
     private readonly i18n: I18nService,
-    private readonly qrCodesRepository: QrCodesRepository,
   ) {}
 
   async create(
@@ -46,12 +46,14 @@ export class QrCodesService {
     const imageUrl = await this.generateQrImage(url, language);
 
     return this.database.execute('qrcodes.create', () =>
-      this.qrCodesRepository.create({
-        shopId,
-        name: dto.name ?? `${shop.name} menu`,
-        url,
-        imageUrl,
-        isActive: true,
+      this.prisma.qrCode.create({
+        data: {
+          shopId,
+          name: dto.name ?? `${shop.name} menu`,
+          url,
+          imageUrl,
+          isActive: true,
+        },
       }),
     );
   }
@@ -69,7 +71,10 @@ export class QrCodesService {
     );
 
     return this.database.execute('qrcodes.findByShop', () =>
-      this.qrCodesRepository.findManyByShopId(shopId),
+      this.prisma.qrCode.findMany({
+        where: { shopId },
+        orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }],
+      }),
     );
   }
 
@@ -83,7 +88,10 @@ export class QrCodesService {
     await this.findOwnedQrCode(user, shopId, qrCodeId, language);
 
     return this.database.execute('qrcodes.update', () =>
-      this.qrCodesRepository.update(qrCodeId, dto),
+      this.prisma.qrCode.update({
+        where: { id: qrCodeId },
+        data: dto,
+      }),
     );
   }
 
@@ -96,7 +104,9 @@ export class QrCodesService {
     await this.findOwnedQrCode(user, shopId, qrCodeId, language);
 
     return this.database.execute('qrcodes.remove', () =>
-      this.qrCodesRepository.delete(qrCodeId),
+      this.prisma.qrCode.delete({
+        where: { id: qrCodeId },
+      }),
     );
   }
 
@@ -133,7 +143,12 @@ export class QrCodesService {
     );
 
     const qrCode = await this.database.execute('qrcodes.findOwnedQrCode', () =>
-      this.qrCodesRepository.findByIdAndShopId(qrCodeId, shopId),
+      this.prisma.qrCode.findFirst({
+        where: {
+          id: qrCodeId,
+          shopId,
+        },
+      }),
     );
 
     if (!qrCode) {
