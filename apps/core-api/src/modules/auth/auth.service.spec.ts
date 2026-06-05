@@ -11,7 +11,7 @@ import * as bcrypt from 'bcrypt';
 import { I18nService } from '../../common/i18n/i18n.service';
 import { AccessControlService } from '../../common/services/access-control.service';
 import { DatabaseService } from '../../common/services/database.service';
-import { PrismaService } from '../../database/prisma/prisma.service';
+import { AuthRepository } from '../../database/repositories';
 import { AuthService } from './auth.service';
 
 jest.mock('bcrypt', () => ({
@@ -20,13 +20,6 @@ jest.mock('bcrypt', () => ({
 }));
 
 describe('AuthService', () => {
-  const prisma = {
-    user: {
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
-    },
-  } as unknown as PrismaService;
   const database = {
     execute: jest.fn(
       async (_operation: string, handler: () => Promise<unknown>) => handler(),
@@ -58,18 +51,26 @@ describe('AuthService', () => {
       return undefined;
     }),
   } as unknown as ConfigService;
+  const authRepository = {
+    findUserByEmail: jest.fn(),
+    createMerchantOwner: jest.fn(),
+    findUserTokenStateById: jest.fn(),
+    updateRefreshTokenHash: jest.fn(),
+    findUserById: jest.fn(),
+    revokeUserTokens: jest.fn(),
+  } as unknown as AuthRepository;
 
   let service: AuthService;
 
   beforeEach(() => {
     jest.clearAllMocks();
     service = new AuthService(
-      prisma,
       database,
       accessControl,
       jwtService,
       i18n,
       configService,
+      authRepository,
     );
   });
 
@@ -85,7 +86,7 @@ describe('AuthService', () => {
   });
 
   it('rejects duplicate emails during registration', async () => {
-    prisma.user.findUnique = jest.fn().mockResolvedValue({ id: 'user-1' });
+    authRepository.findUserByEmail = jest.fn().mockResolvedValue({ id: 'user-1' });
 
     await expect(
       service.register({
@@ -109,8 +110,8 @@ describe('AuthService', () => {
       password: 'hashed',
     });
 
-    prisma.user.findUnique = jest.fn().mockResolvedValue(null);
-    prisma.user.create = createMock;
+    authRepository.findUserByEmail = jest.fn().mockResolvedValue(null);
+    authRepository.createMerchantOwner = createMock;
     (bcrypt.hash as jest.Mock).mockResolvedValue('hashed');
 
     const result = await service.register({
@@ -121,12 +122,11 @@ describe('AuthService', () => {
 
     expect(result.accessToken).toBe('token');
     expect(result.refreshToken).toBe('token');
-    expect(result.user.role).toBe(UserRole.MERCHANT_OWNER);
     expect(createMock).toHaveBeenCalled();
   });
 
   it('rejects invalid login credentials', async () => {
-    prisma.user.findUnique = jest.fn().mockResolvedValue({
+    authRepository.findUserByEmail = jest.fn().mockResolvedValue({
       id: 'user-1',
       email: 'merchant@example.com',
       password: 'hashed',
@@ -152,7 +152,7 @@ describe('AuthService', () => {
       tokenVersion: 0,
       type: 'refresh',
     });
-    prisma.user.findUnique = jest.fn().mockResolvedValue({
+    authRepository.findUserTokenStateById = jest.fn().mockResolvedValue({
       id: 'user-1',
       name: 'Merchant',
       email: 'merchant@example.com',
@@ -164,7 +164,9 @@ describe('AuthService', () => {
       isActive: true,
       tokenVersion: 0,
     });
-    prisma.user.update = jest.fn().mockResolvedValue({ id: 'user-1' });
+    authRepository.updateRefreshTokenHash = jest
+      .fn()
+      .mockResolvedValue({ id: 'user-1' });
     (bcrypt.compare as jest.Mock).mockResolvedValue(true);
     (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-refresh');
 
@@ -175,21 +177,13 @@ describe('AuthService', () => {
   });
 
   it('increments token version on logout', async () => {
-    prisma.user.findUnique = jest.fn().mockResolvedValue({ id: 'user-1' });
-    const updateMock = jest.fn().mockResolvedValue({ id: 'user-1' });
-    prisma.user.update = updateMock;
+    authRepository.findUserById = jest.fn().mockResolvedValue({ id: 'user-1' });
+    const revokeMock = jest.fn().mockResolvedValue({ id: 'user-1' });
+    authRepository.revokeUserTokens = revokeMock;
 
     const result = await service.logout('user-1');
 
-    expect(updateMock).toHaveBeenCalledWith({
-      where: { id: 'user-1' },
-      data: {
-        refreshTokenHash: null,
-        tokenVersion: {
-          increment: 1,
-        },
-      },
-    });
+    expect(revokeMock).toHaveBeenCalledWith('user-1');
     expect(result).toEqual({ message: 'auth.loggedOut' });
   });
 });

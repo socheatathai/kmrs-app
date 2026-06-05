@@ -34,7 +34,7 @@ const selectedShop = computed(() => shops.value?.find((shop) => shop.id === shop
       <div class="card stat-card">
         <p class="eyebrow">Permission Set</p>
         <h2>{{ session.permissions.length }}</h2>
-        <p class="muted">Explicit MVP permissions loaded from `auth/me`.</p>
+        <p class="muted">Permissions loaded from the latest session state.</p>
       </div>
     </section>
 
