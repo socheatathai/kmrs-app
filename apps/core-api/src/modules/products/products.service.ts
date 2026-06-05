@@ -5,7 +5,10 @@ import { I18nService } from '../../common/i18n/i18n.service';
 import { DatabaseService } from '../../common/services/database.service';
 import { PlanLimitService } from '../../common/services/plan-limit.service';
 import type { AuthUser } from '../../common/types/auth-user.type';
-import { PrismaService } from '../../database/prisma/prisma.service';
+import {
+  CategoriesRepository,
+  ProductsRepository,
+} from '../../database/repositories';
 import { ShopsService } from '../shops/shops.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
@@ -13,11 +16,12 @@ import { UpdateProductDto } from './dto/update-product.dto';
 @Injectable()
 export class ProductsService {
   constructor(
-    private readonly prisma: PrismaService,
     private readonly database: DatabaseService,
     private readonly shopsService: ShopsService,
     private readonly planLimitService: PlanLimitService,
     private readonly i18n: I18nService,
+    private readonly productsRepository: ProductsRepository,
+    private readonly categoriesRepository: CategoriesRepository,
   ) {}
 
   async create(
@@ -35,13 +39,7 @@ export class ProductsService {
 
     const category = await this.database.execute(
       'products.create.findCategory',
-      () =>
-        this.prisma.category.findFirst({
-          where: {
-            id: dto.categoryId,
-            shopId,
-          },
-        }),
+      () => this.categoriesRepository.findByIdAndShopId(dto.categoryId, shopId),
     );
 
     if (!category) {
@@ -51,18 +49,15 @@ export class ProductsService {
     await this.planLimitService.assertCanCreateProduct(user.sub, language);
 
     return this.database.execute('products.create', () =>
-      this.prisma.product.create({
-        data: {
-          shopId,
-          categoryId: dto.categoryId,
-          name: dto.name,
-          description: dto.description,
-          price: dto.price,
-          imageUrl: dto.imageUrl,
-          imageKey: dto.imageKey,
-          sortOrder: dto.sortOrder ?? 0,
-          isAvailable: dto.isAvailable ?? true,
-        },
+      this.productsRepository.create(shopId, {
+        categoryId: dto.categoryId,
+        name: dto.name,
+        description: dto.description,
+        price: dto.price,
+        imageUrl: dto.imageUrl,
+        imageKey: dto.imageKey,
+        sortOrder: dto.sortOrder ?? 0,
+        isAvailable: dto.isAvailable ?? true,
       }),
     );
   }
@@ -76,11 +71,7 @@ export class ProductsService {
     );
 
     return this.database.execute('products.findByShop', () =>
-      this.prisma.product.findMany({
-        where: { shopId },
-        include: { category: true },
-        orderBy: [{ category: { sortOrder: 'asc' } }, { sortOrder: 'asc' }],
-      }),
+      this.productsRepository.findManyByShopId(shopId),
     );
   }
 
@@ -100,13 +91,7 @@ export class ProductsService {
 
     const product = await this.database.execute(
       'products.update.findProduct',
-      () =>
-        this.prisma.product.findFirst({
-          where: {
-            id: productId,
-            shopId,
-          },
-        }),
+      () => this.productsRepository.findByIdAndShopId(productId, shopId),
     );
 
     if (!product) {
@@ -114,15 +99,10 @@ export class ProductsService {
     }
 
     if (dto.categoryId) {
+      const categoryId = dto.categoryId;
       const category = await this.database.execute(
         'products.update.findCategory',
-        () =>
-          this.prisma.category.findFirst({
-            where: {
-              id: dto.categoryId,
-              shopId,
-            },
-          }),
+        () => this.categoriesRepository.findByIdAndShopId(categoryId, shopId),
       );
 
       if (!category) {
@@ -131,10 +111,7 @@ export class ProductsService {
     }
 
     return this.database.execute('products.update', () =>
-      this.prisma.product.update({
-        where: { id: productId },
-        data: dto,
-      }),
+      this.productsRepository.update(productId, dto),
     );
   }
 
@@ -153,13 +130,7 @@ export class ProductsService {
 
     const product = await this.database.execute(
       'products.remove.findProduct',
-      () =>
-        this.prisma.product.findFirst({
-          where: {
-            id: productId,
-            shopId,
-          },
-        }),
+      () => this.productsRepository.findByIdAndShopId(productId, shopId),
     );
 
     if (!product) {
@@ -167,9 +138,7 @@ export class ProductsService {
     }
 
     return this.database.execute('products.remove', () =>
-      this.prisma.product.delete({
-        where: { id: productId },
-      }),
+      this.productsRepository.delete(productId),
     );
   }
 }

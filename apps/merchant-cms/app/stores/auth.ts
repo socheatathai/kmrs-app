@@ -1,5 +1,5 @@
 import { ApiClientError, createApiClient } from '@kmrs-app/api-client'
-import type { AuthUserProfile, LoginRequest } from '@kmrs-app/types'
+import type { LoginRequest } from '@kmrs-app/types'
 
 function createClient(baseURL: string, token?: string | null) {
   return createApiClient({
@@ -13,24 +13,21 @@ export const useAuthStore = defineStore('auth', () => {
   const accessToken = useCookie<string | null>('kmrs_access_token', { sameSite: 'lax' })
   const refreshToken = useCookie<string | null>('kmrs_refresh_token', { sameSite: 'lax' })
 
-  const user = ref<AuthUserProfile | null>(null)
   const initialized = ref(false)
   const isSubmitting = ref(false)
   const errorMessage = ref('')
 
-  const isAuthenticated = computed(() => Boolean(accessToken.value && user.value))
+  const isAuthenticated = computed(() => Boolean(accessToken.value))
 
-  const clearSession = () => {
+  const clearTokens = () => {
     accessToken.value = null
     refreshToken.value = null
-    user.value = null
     errorMessage.value = ''
   }
 
-  const applyAuth = (payload: { accessToken: string, refreshToken: string, user: AuthUserProfile }) => {
+  const applyTokens = (payload: { accessToken: string, refreshToken: string }) => {
     accessToken.value = payload.accessToken
     refreshToken.value = payload.refreshToken
-    user.value = payload.user
     errorMessage.value = ''
   }
 
@@ -39,9 +36,14 @@ export const useAuthStore = defineStore('auth', () => {
 
     try {
       const client = createClient(config.public.apiBase)
-      const response = await client.login(payload)
-      applyAuth(response)
-      return response
+      const tokens = await client.login(payload)
+      applyTokens(tokens)
+
+      // Load the latest session state immediately after authenticating.
+      const session = useSessionStore()
+      await session.fetchSession()
+
+      return tokens
     } catch (error) {
       if (error instanceof ApiClientError && error.statusCode === 429) {
         errorMessage.value = 'Too many login attempts. Wait a minute and try again.'
@@ -56,43 +58,29 @@ export const useAuthStore = defineStore('auth', () => {
 
   const refreshSession = async () => {
     if (!refreshToken.value) {
-      clearSession()
+      clearTokens()
       return null
     }
 
     try {
       const client = createClient(config.public.apiBase)
-      const response = await client.refresh({ refreshToken: refreshToken.value })
-      applyAuth(response)
-      return response
+      const tokens = await client.refresh({ refreshToken: refreshToken.value })
+      applyTokens(tokens)
+      return tokens
     } catch (error) {
-      clearSession()
+      clearTokens()
       throw error
     }
   }
 
-  const fetchMe = async () => {
-    if (!accessToken.value) {
-      user.value = null
-      return null
-    }
-
-    const client = createClient(config.public.apiBase, accessToken.value)
-
+  // Best-effort refresh that never throws; returns true when a new access
+  // token was obtained. Used by the session store on a 401.
+  const tryRefresh = async () => {
     try {
-      const profile = await client.getMe()
-      user.value = profile
-      return profile
-    } catch (error) {
-      if (error instanceof ApiClientError && error.statusCode === 401) {
-        await refreshSession()
-        const refreshedClient = createClient(config.public.apiBase, accessToken.value)
-        const profile = await refreshedClient.getMe()
-        user.value = profile
-        return profile
-      }
-
-      throw error
+      const tokens = await refreshSession()
+      return Boolean(tokens)
+    } catch {
+      return false
     }
   }
 
@@ -101,18 +89,23 @@ export const useAuthStore = defineStore('auth', () => {
       return
     }
 
+    const session = useSessionStore()
+
     try {
       if (accessToken.value) {
-        await fetchMe()
+        await session.fetchSession()
       }
     } catch {
-      clearSession()
+      clearTokens()
+      session.clear()
     } finally {
       initialized.value = true
     }
   }
 
   const logout = async () => {
+    const session = useSessionStore()
+
     try {
       if (accessToken.value) {
         const client = createClient(config.public.apiBase, accessToken.value)
@@ -121,23 +114,24 @@ export const useAuthStore = defineStore('auth', () => {
     } catch {
       // Best effort logout.
     } finally {
-      clearSession()
+      clearTokens()
+      session.clear()
+      initialized.value = false
     }
   }
 
   return {
     accessToken,
     refreshToken,
-    user,
     initialized,
     isSubmitting,
     errorMessage,
     isAuthenticated,
     login,
-    fetchMe,
     initializeSession,
-    logout,
     refreshSession,
-    clearSession
+    tryRefresh,
+    logout,
+    clearTokens
   }
 })

@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 import { Request } from 'express';
 
 import type { AuthUser } from '../types/auth-user.type';
-import { PrismaService } from '../../database/prisma/prisma.service';
+import { AuditLogsRepository } from '../../database/repositories';
 
 type AuditContext = {
   requestId?: string;
@@ -19,7 +19,7 @@ type RouteWithPath = {
 export class AuditLogService {
   private readonly logger = new Logger(AuditLogService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly auditLogsRepository: AuditLogsRepository) {}
 
   recordFromHttp(
     request: RequestWithUser,
@@ -29,27 +29,25 @@ export class AuditLogService {
     const { action, entity, entityId } = this.deriveAction(request);
     const user = request.user;
 
-    void this.prisma.auditLog
+    void this.auditLogsRepository
       .create({
-        data: {
-          userId: user?.sub,
-          action,
-          entity,
-          entityId,
-          method: request.method,
-          path: request.originalUrl || request.url,
-          statusCode,
-          requestId: context.requestId,
-          ip: request.ip,
-          userAgent: this.normalizeHeader(request.headers['user-agent']),
-          metadata: {
-            params: request.params,
-            query: request.query,
-            body: this.sanitizeBody(request.body),
-            role: user?.role,
-            error: context.error,
-          } as Prisma.InputJsonValue,
-        },
+        userId: user?.sub,
+        action,
+        entity,
+        entityId,
+        method: request.method,
+        path: request.originalUrl || request.url,
+        statusCode,
+        requestId: context.requestId,
+        ip: request.ip,
+        userAgent: this.normalizeHeader(request.headers['user-agent']),
+        metadata: {
+          params: request.params,
+          query: request.query,
+          body: this.sanitizeBody(request.body),
+          role: user?.role,
+          error: context.error,
+        } as Prisma.InputJsonValue,
       })
       .catch((error: unknown) => {
         this.logger.warn(

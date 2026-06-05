@@ -9,7 +9,11 @@ import { LEVEL_DEFAULT_PERMISSIONS, LEVELS } from '../auth/level-permissions';
 import type { Permission } from '../auth/permissions';
 import { I18nService } from '../i18n/i18n.service';
 import type { AuthUser } from '../types/auth-user.type';
-import { PrismaService } from '../../database/prisma/prisma.service';
+import {
+  ShopMembersRepository,
+  ShopsRepository,
+  UsersRepository,
+} from '../../database/repositories';
 
 type AccessProfile = {
   permissions: Permission[];
@@ -24,20 +28,17 @@ type AccessProfile = {
 @Injectable()
 export class AccessControlService {
   constructor(
-    private readonly prisma: PrismaService,
     private readonly i18n: I18nService,
+    private readonly usersRepository: UsersRepository,
+    private readonly shopsRepository: ShopsRepository,
+    private readonly shopMembersRepository: ShopMembersRepository,
   ) {}
 
   async getAccessProfile(
     userId: string,
     level: number,
   ): Promise<AccessProfile> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        permissions: true,
-      },
-    });
+    const user = await this.usersRepository.findUserPermissionsById(userId);
 
     const basePermissions = this.resolveBasePermissions(
       level,
@@ -45,13 +46,7 @@ export class AccessControlService {
     );
 
     if (level === LEVELS.ADMIN_TOP) {
-      const shops = await this.prisma.shop.findMany({
-        select: {
-          id: true,
-          name: true,
-        },
-        orderBy: { createdAt: 'desc' },
-      });
+      const shops = await this.shopsRepository.findAllNames();
 
       return {
         permissions: [...basePermissions],
@@ -64,29 +59,10 @@ export class AccessControlService {
       };
     }
 
-    const ownedShops = await this.prisma.shop.findMany({
-      where: { ownerId: userId },
-      select: { id: true, name: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    const ownedShops = await this.shopsRepository.findOwnedNamesByUserId(userId);
 
-    const memberships = await this.prisma.shopMember.findMany({
-      where: {
-        userId,
-        isActive: true,
-      },
-      select: {
-        permissions: true,
-        role: true,
-        shop: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const memberships =
+      await this.shopMembersRepository.findActiveMembershipsByUserId(userId);
 
     const shops = [
       ...ownedShops.map((shop) => ({
@@ -133,8 +109,13 @@ export class AccessControlService {
       return true;
     }
 
+    const record = await this.usersRepository.findUserPermissionsById(user.sub);
+
     const basePermissions = new Set<Permission>(
-      this.resolveBasePermissions(user.level, user.permissions),
+      this.resolveBasePermissions(
+        user.level,
+        record?.permissions as Permission[] | undefined,
+      ),
     );
 
     if (!shopId) {
@@ -142,27 +123,16 @@ export class AccessControlService {
     }
 
     if (user.level <= LEVELS.ADMIN_MIDDLE) {
-      const owned = await this.prisma.shop.findFirst({
-        where: {
-          id: shopId,
-          ownerId: user.sub,
-        },
-        select: { id: true },
-      });
+      const owned = await this.shopsRepository.findByIdAndOwnerId(shopId, user.sub);
 
       return Boolean(owned) && basePermissions.has(permission);
     }
 
-    const membership = await this.prisma.shopMember.findFirst({
-      where: {
-        userId: user.sub,
+    const membership =
+      await this.shopMembersRepository.findActiveMembershipPermissionByUserIdAndShopId(
+        user.sub,
         shopId,
-        isActive: true,
-      },
-      select: {
-        permissions: true,
-      },
-    });
+      );
 
     if (!membership) {
       return false;
@@ -201,15 +171,7 @@ export class AccessControlService {
     permission: Permission,
     language?: string,
   ) {
-    const shop = await this.prisma.shop.findUnique({
-      where: { id: shopId },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        ownerId: true,
-      },
-    });
+    const shop = await this.shopsRepository.findById(shopId);
 
     if (!shop) {
       throw new NotFoundException(this.i18n.t('shop.notFound', language));

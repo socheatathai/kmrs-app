@@ -1,6 +1,10 @@
 import { ForbiddenException, Injectable } from '@nestjs/common';
 
-import { PrismaService } from '../../database/prisma/prisma.service';
+import {
+  ProductsRepository,
+  QrCodesRepository,
+  ShopsRepository,
+} from '../../database/repositories';
 import { I18nService } from '../i18n/i18n.service';
 import { DatabaseService } from './database.service';
 import { SubscriptionAccessService } from './subscription-access.service';
@@ -8,10 +12,12 @@ import { SubscriptionAccessService } from './subscription-access.service';
 @Injectable()
 export class PlanLimitService {
   constructor(
-    private readonly prisma: PrismaService,
     private readonly database: DatabaseService,
     private readonly subscriptionAccessService: SubscriptionAccessService,
     private readonly i18n: I18nService,
+    private readonly shopsRepository: ShopsRepository,
+    private readonly productsRepository: ProductsRepository,
+    private readonly qrCodesRepository: QrCodesRepository,
   ) {}
 
   async assertCanCreateShop(ownerId: string, language?: string) {
@@ -21,10 +27,7 @@ export class PlanLimitService {
     );
     const activeShopCount = await this.database.execute(
       'planLimit.assertCanCreateShop.count',
-      () =>
-        this.prisma.shop.count({
-          where: { ownerId, isActive: true },
-        }),
+      () => this.shopsRepository.countActiveByOwnerId(ownerId),
     );
 
     if (activeShopCount >= plan.maxShops) {
@@ -39,14 +42,7 @@ export class PlanLimitService {
     );
     const productCount = await this.database.execute(
       'planLimit.assertCanCreateProduct.count',
-      () =>
-        this.prisma.product.count({
-          where: {
-            shop: {
-              ownerId,
-            },
-          },
-        }),
+      () => this.productsRepository.countByOwnerId(ownerId),
     );
 
     if (productCount >= plan.maxProducts) {
@@ -63,14 +59,7 @@ export class PlanLimitService {
     );
     const qrCodeCount = await this.database.execute(
       'planLimit.assertCanCreateQrCode.count',
-      () =>
-        this.prisma.qrCode.count({
-          where: {
-            shop: {
-              ownerId,
-            },
-          },
-        }),
+      () => this.qrCodesRepository.countByOwnerId(ownerId),
     );
 
     if (qrCodeCount >= plan.maxQrCodes) {

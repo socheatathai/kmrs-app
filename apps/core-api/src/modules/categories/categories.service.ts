@@ -8,7 +8,7 @@ import { PERMISSIONS } from '../../common/auth/permissions';
 import { I18nService } from '../../common/i18n/i18n.service';
 import { DatabaseService } from '../../common/services/database.service';
 import type { AuthUser } from '../../common/types/auth-user.type';
-import { PrismaService } from '../../database/prisma/prisma.service';
+import { CategoriesRepository } from '../../database/repositories';
 import { ShopsService } from '../shops/shops.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -16,10 +16,10 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 @Injectable()
 export class CategoriesService {
   constructor(
-    private readonly prisma: PrismaService,
     private readonly database: DatabaseService,
     private readonly shopsService: ShopsService,
     private readonly i18n: I18nService,
+    private readonly categoriesRepository: CategoriesRepository,
   ) {}
 
   async create(
@@ -36,12 +36,9 @@ export class CategoriesService {
     );
 
     return this.database.execute('categories.create', () =>
-      this.prisma.category.create({
-        data: {
-          shopId,
-          name: dto.name,
-          sortOrder: dto.sortOrder ?? 0,
-        },
+      this.categoriesRepository.create(shopId, {
+        name: dto.name,
+        sortOrder: dto.sortOrder ?? 0,
       }),
     );
   }
@@ -55,10 +52,7 @@ export class CategoriesService {
     );
 
     return this.database.execute('categories.findByShop', () =>
-      this.prisma.category.findMany({
-        where: { shopId },
-        orderBy: { sortOrder: 'asc' },
-      }),
+      this.categoriesRepository.findManyByShopId(shopId),
     );
   }
 
@@ -78,13 +72,7 @@ export class CategoriesService {
 
     const category = await this.database.execute(
       'categories.update.findOne',
-      () =>
-        this.prisma.category.findFirst({
-          where: {
-            id: categoryId,
-            shopId,
-          },
-        }),
+      () => this.categoriesRepository.findByIdAndShopId(categoryId, shopId),
     );
 
     if (!category) {
@@ -92,10 +80,7 @@ export class CategoriesService {
     }
 
     return this.database.execute('categories.update', () =>
-      this.prisma.category.update({
-        where: { id: categoryId },
-        data: dto,
-      }),
+      this.categoriesRepository.update(categoryId, dto),
     );
   }
 
@@ -115,18 +100,10 @@ export class CategoriesService {
     const category = await this.database.execute(
       'categories.remove.findOne',
       () =>
-        this.prisma.category.findFirst({
-          where: {
-            id: categoryId,
-            shopId,
-          },
-          include: {
-            products: {
-              select: { id: true },
-              take: 1,
-            },
-          },
-        }),
+        this.categoriesRepository.findByIdAndShopIdWithProducts(
+          categoryId,
+          shopId,
+        ),
     );
 
     if (!category) {
@@ -140,9 +117,7 @@ export class CategoriesService {
     }
 
     return this.database.execute('categories.remove', () =>
-      this.prisma.category.delete({
-        where: { id: categoryId },
-      }),
+      this.categoriesRepository.delete(categoryId),
     );
   }
 }

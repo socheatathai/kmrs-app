@@ -1,34 +1,27 @@
 <script setup lang="ts">
-import { CMS_NAV_ITEMS, routeWithShop } from '~/constants/navigation'
+import { routeWithShop } from '~/constants/navigation'
 
 const route = useRoute()
 const auth = useAuthStore()
 const session = useSessionStore()
 const shopStore = useShopStore()
-const { can } = usePermissions()
 
 const selectedShopId = computed(() => shopStore.selectedShopId || '')
 const selectedShopLabel = computed(() => shopStore.selectedShop?.shopName || 'Select shop')
 
 const visibleNavGroups = computed(() =>
-  CMS_NAV_ITEMS
-    .filter((group) => group.mode === session.mode)
-    .map((group) => ({
-      ...group,
-      to: group.to,
-      children: group.children
-        ?.filter((child) => can(child.permission))
-        .map((child) => ({
-          ...child,
-          to: child.requiresShop ? routeWithShop(child.to, selectedShopId.value) : child.to
-        }))
+  session.allowedMenus.map((group) => ({
+    ...group,
+    children: group.children?.map((child) => ({
+      ...child,
+      to: child.requiresShop ? routeWithShop(child.path, selectedShopId.value) : child.path
     }))
-    .filter((group) => can(group.permission) || Boolean(group.children?.length))
+  }))
 )
 
 const pageTitle = computed(() => {
   for (const group of visibleNavGroups.value) {
-    if (group.to && (route.path === group.to || route.path.startsWith(`${group.to}/`))) {
+    if (group.path && (route.path === group.path || route.path.startsWith(`${group.path}/`))) {
       return group.label
     }
 
@@ -73,12 +66,12 @@ const handleShopChange = (event: Event) => {
       </div>
 
       <nav class="nav">
-        <div v-for="group in visibleNavGroups" :key="`${group.mode}-${group.label}`" class="nav-group">
+        <div v-for="group in visibleNavGroups" :key="group.key" class="nav-group">
           <NuxtLink
-            v-if="group.to"
-            :to="group.to"
+            v-if="group.path"
+            :to="group.path"
             class="nav-link"
-            :class="{ active: route.path === group.to || route.path.startsWith(`${group.to}/`) }"
+            :class="{ active: route.path === group.path || route.path.startsWith(`${group.path}/`) }"
           >
             <span class="nav-icon">{{ group.icon }}</span>
             {{ group.label }}
