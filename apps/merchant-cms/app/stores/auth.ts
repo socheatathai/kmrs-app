@@ -1,12 +1,11 @@
 import { ApiClientError, createApiClient } from '@kmrs-app/api-client'
-import type { AuthUserProfile, LoginRequest } from '@kmrs-app/types'
+import type { AuthResponse, AuthUserProfile, LoginRequest, RegisterRequest } from '@kmrs-app/types'
 
-function createClient(baseURL: string, token?: string | null) {
-  return createApiClient({
+const makeClient = (baseURL: string, token?: string | null) =>
+  createApiClient({
     baseURL,
     getAccessToken: () => token
   })
-}
 
 export const useAuthStore = defineStore('auth', () => {
   const config = useRuntimeConfig()
@@ -14,60 +13,80 @@ export const useAuthStore = defineStore('auth', () => {
   const refreshToken = useCookie<string | null>('kmrs_refresh_token', { sameSite: 'lax' })
 
   const user = ref<AuthUserProfile | null>(null)
-  const initialized = ref(false)
-  const isSubmitting = ref(false)
-  const errorMessage = ref('')
+  const ready = ref(false)
+  const pending = ref(false)
+  const error = ref('')
+  let refreshInFlight: Promise<AuthResponse | null> | null = null
 
   const isAuthenticated = computed(() => Boolean(accessToken.value && user.value))
 
-  const clearSession = () => {
+  const clear = () => {
     accessToken.value = null
     refreshToken.value = null
     user.value = null
-    errorMessage.value = ''
+    error.value = ''
   }
 
-  const applyAuth = (payload: { accessToken: string, refreshToken: string, user: AuthUserProfile }) => {
+  const apply = (payload: { accessToken: string, refreshToken: string, user: AuthUserProfile }) => {
     accessToken.value = payload.accessToken
     refreshToken.value = payload.refreshToken
     user.value = payload.user
-    errorMessage.value = ''
+    error.value = ''
   }
 
   const login = async (payload: LoginRequest) => {
-    isSubmitting.value = true
-
+    pending.value = true
     try {
-      const client = createClient(config.public.apiBase)
-      const response = await client.login(payload)
-      applyAuth(response)
+      const response = await makeClient(config.public.apiBase).login(payload)
+      apply(response)
       return response
-    } catch (error) {
-      if (error instanceof ApiClientError && error.statusCode === 429) {
-        errorMessage.value = 'Too many login attempts. Wait a minute and try again.'
-      } else {
-        errorMessage.value = error instanceof ApiClientError ? error.message : 'Unable to sign in'
-      }
-      throw error
+    } catch (err) {
+      error.value = err instanceof ApiClientError ? err.message : 'Unable to sign in'
+      throw err
     } finally {
-      isSubmitting.value = false
+      pending.value = false
     }
   }
 
-  const refreshSession = async () => {
+  const register = async (payload: RegisterRequest) => {
+    pending.value = true
+    try {
+      const response = await makeClient(config.public.apiBase).register(payload)
+      apply(response)
+      return response
+    } catch (err) {
+      error.value = err instanceof ApiClientError ? err.message : 'Unable to create account'
+      throw err
+    } finally {
+      pending.value = false
+    }
+  }
+
+  const refresh = async () => {
     if (!refreshToken.value) {
-      clearSession()
+      clear()
       return null
     }
 
+    refreshInFlight ??= makeClient(config.public.apiBase)
+      .refresh({ refreshToken: refreshToken.value })
+      .then((response) => {
+        apply(response)
+        return response
+      })
+      .finally(() => {
+        refreshInFlight = null
+      })
+
+    return refreshInFlight
+  }
+
+  const refreshSession = async () => {
     try {
-      const client = createClient(config.public.apiBase)
-      const response = await client.refresh({ refreshToken: refreshToken.value })
-      applyAuth(response)
-      return response
-    } catch (error) {
-      clearSession()
-      throw error
+      return Boolean(await refresh())
+    } catch {
+      clear()
+      return false
     }
   }
 
@@ -77,51 +96,43 @@ export const useAuthStore = defineStore('auth', () => {
       return null
     }
 
-    const client = createClient(config.public.apiBase, accessToken.value)
-
     try {
-      const profile = await client.getMe()
+      const profile = await makeClient(config.public.apiBase, accessToken.value).getMe()
       user.value = profile
       return profile
-    } catch (error) {
-      if (error instanceof ApiClientError && error.statusCode === 401) {
-        await refreshSession()
-        const refreshedClient = createClient(config.public.apiBase, accessToken.value)
-        const profile = await refreshedClient.getMe()
+    } catch (err) {
+      if (err instanceof ApiClientError && err.statusCode === 401) {
+        await refresh()
+        const profile = await makeClient(config.public.apiBase, accessToken.value).getMe()
         user.value = profile
         return profile
       }
-
-      throw error
+      throw err
     }
   }
 
-  const initializeSession = async () => {
-    if (initialized.value) {
+  const initialize = async () => {
+    if (ready.value) {
       return
     }
 
     try {
-      if (accessToken.value) {
-        await fetchMe()
-      }
+      await fetchMe()
     } catch {
-      clearSession()
+      clear()
     } finally {
-      initialized.value = true
+      ready.value = true
     }
   }
 
   const logout = async () => {
     try {
       if (accessToken.value) {
-        const client = createClient(config.public.apiBase, accessToken.value)
-        await client.logout()
+        await makeClient(config.public.apiBase, accessToken.value).logout()
       }
-    } catch {
-      // Best effort logout.
     } finally {
-      clearSession()
+      clear()
+      clearNuxtData()
     }
   }
 
@@ -129,15 +140,16 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken,
     refreshToken,
     user,
-    initialized,
-    isSubmitting,
-    errorMessage,
+    ready,
+    pending,
+    error,
     isAuthenticated,
     login,
-    fetchMe,
-    initializeSession,
+    register,
     logout,
+    initialize,
+    fetchMe,
     refreshSession,
-    clearSession
+    clear
   }
 })

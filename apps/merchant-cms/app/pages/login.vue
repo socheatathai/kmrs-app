@@ -1,61 +1,85 @@
 <script setup lang="ts">
-const auth = useAuthStore()
-const session = useSessionStore()
-const shopStore = useShopStore()
-
-const email = ref('merchant@example.com')
-const password = ref('secret123')
-
 definePageMeta({
-  layout: false,
-  middleware: 'auth'
+  middleware: 'guest'
 })
 
-const handleSubmit = async () => {
-  try {
-    await auth.login({
-      email: email.value,
-      password: password.value
-    })
+const auth = useAuthStore()
+const session = useSessionStore()
 
-    shopStore.initializeSelection()
-    await navigateTo(session.landingPath)
-  } catch {
-    // Error state is rendered from the store.
-  }
+const form = reactive({
+  email: '',
+  password: ''
+})
+const showPassword = ref(false)
+
+const demoCredentials = {
+  email: 'nika@example.com',
+  password: 'secret123'
+}
+
+const fillDemoCredentials = () => {
+  form.email = demoCredentials.email
+  form.password = demoCredentials.password
+}
+
+const submit = async () => {
+  await auth.login(form)
+  return navigateTo(session.landingPath)
 }
 </script>
 
 <template>
-  <div class="login-shell">
-    <div class="login-card">
-      <div class="login-header">
-        <p class="eyebrow">uat Merchant CMS</p>
-        <h1>Sign in to your workspace</h1>
-        <p class="muted">Use seeded credentials from `core-api` to load your real profile and permissions.</p>
+  <main class="auth-page">
+    <section class="auth-card">
+      <div class="brand">
+        <div class="brand-mark">K</div>
+        <div>
+          <h1 class="brand-title">KMRS Merchant CMS</h1>
+          <p class="brand-sub">Sign in Account with your credentials</p>
+        </div>
       </div>
 
-      <form class="form" @submit.prevent="handleSubmit">
+      <div class="demo-login">
+        <div>
+          <p class="demo-title">Demo account</p>
+          <p class="demo-line">Email: {{ demoCredentials.email }}</p>
+          <p class="demo-line">Password: {{ demoCredentials.password }}</p>
+        </div>
+        <button class="button ghost demo-action" type="button" @click="fillDemoCredentials">
+          Use demo
+        </button>
+      </div>
+
+      <form class="form" @submit.prevent="submit">
         <label class="field">
-          <span>Email</span>
-          <input v-model="email" type="email" placeholder="merchant@example.com" required />
+          Email
+          <input v-model="form.email" class="input" type="email" autocomplete="email" required>
         </label>
         <label class="field">
-          <span>Password</span>
-          <input v-model="password" type="password" placeholder="secret123" required />
+          Password
+          <span class="input-wrap">
+            <input
+              v-model="form.password"
+              class="input"
+              :type="showPassword ? 'text' : 'password'"
+              autocomplete="current-password"
+              required
+            >
+            <button class="input-toggle" type="button" @click="showPassword = !showPassword">
+              {{ showPassword ? 'Hide' : 'Show' }}
+            </button>
+          </span>
         </label>
-
-        <p v-if="auth.errorMessage" class="form-error">{{ auth.errorMessage }}</p>
-
-        <button class="btn primary" type="submit" :disabled="auth.isSubmitting">
-          {{ auth.isSubmitting ? 'Signing in...' : 'Sign in' }}
+        <div v-if="auth.error" class="error">{{ auth.error }}</div>
+        <button class="button primary" type="submit" :disabled="auth.pending">
+          {{ auth.pending ? 'Signing in...' : 'Sign in' }}
         </button>
       </form>
 
-      <div class="login-footer">
-        <span class="muted">Demo credentials:</span>
-        <span class="link">merchant@example.com / secret123</span>
-      </div>
-    </div>
-  </div>
+      <p class="auth-switch">
+        Need a merchant account?
+        <NuxtLink class="link" to="/register">Register</NuxtLink>
+      </p>
+    </section>
+  </main>
 </template>

@@ -2,6 +2,6 @@
 const auth = useAuthStore()
 const session = useSessionStore()
 
-await auth.initializeSession()
+await auth.initialize()
 await navigateTo(auth.isAuthenticated ? session.landingPath : '/login')
 </script>

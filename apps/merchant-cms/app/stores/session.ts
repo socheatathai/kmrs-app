@@ -4,41 +4,45 @@ export const useSessionStore = defineStore('session', () => {
   const auth = useAuthStore()
 
   const mode = computed<DashboardMode>(() => auth.user?.role === 'SUPER_ADMIN' ? 'admin' : 'merchant')
-  const level = computed(() => auth.user?.level ?? 3)
   const permissions = computed<Permission[]>(() => auth.user?.permissions ?? [])
   const accessibleShops = computed(() => auth.user?.accessibleShops ?? [])
   const displayName = computed(() => auth.user?.name || 'Workspace User')
-  const roleLabel = computed(() => {
-    const role = auth.user?.role
-
-    if (role === 'SUPER_ADMIN') {
-      return `Platform Admin - L${auth.user?.level ?? 1}`
-    }
-
-    if (role === 'MERCHANT_OWNER') {
-      return `Merchant Owner - L${auth.user?.level ?? 2}`
-    }
-
-    return `Staff - L${auth.user?.level ?? 3}`
+  const username = computed(() => auth.user?.email || 'No email')
+  const profileUrl = computed(() => auth.user?.profileUrl || '')
+  const initials = computed(() => {
+    const label = auth.user?.name || auth.user?.email || 'User'
+    return label
+      .split(/[\s@._-]+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join('') || 'U'
   })
-  const landingPath = computed(() => mode.value === 'admin' ? '/admin/dashboard' : '/merchant/dashboard')
-
-  const hasPermission = (permission?: Permission) => {
-    if (!permission) {
-      return true
+  const roleLabel = computed(() => {
+    if (auth.user?.role === 'SUPER_ADMIN') {
+      return `Platform Admin L${auth.user.level}`
     }
 
-    return permissions.value.includes(permission)
-  }
+    if (auth.user?.role === 'MERCHANT_OWNER') {
+      return `Merchant Owner L${auth.user.level}`
+    }
+
+    return `Staff L${auth.user?.level ?? 3}`
+  })
+  const landingPath = computed(() => '/dashboard')
+
+  const can = (permission?: Permission) => !permission || permissions.value.includes(permission)
 
   return {
     mode,
-    level,
     permissions,
     accessibleShops,
     displayName,
+    username,
+    profileUrl,
+    initials,
     roleLabel,
     landingPath,
-    hasPermission
+    can
   }
 })

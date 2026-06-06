@@ -1,30 +1,30 @@
 export const useShopStore = defineStore('shop', () => {
-  const selectedShopId = useCookie<string | null>('kmrs_selected_shop_id', { sameSite: 'lax' })
   const session = useSessionStore()
+  const selectedShopId = useCookie<string | null>('kmrs_selected_shop_id', { sameSite: 'lax' })
 
   const selectedShop = computed(() =>
     session.accessibleShops.find((shop) => shop.shopId === selectedShopId.value) ?? null
   )
 
-  const canAccessShop = (shopId: string) =>
-    session.accessibleShops.some((shop) => shop.shopId === shopId)
+  const initialize = () => {
+    const ids = session.accessibleShops.map((shop) => shop.shopId)
+    const fallbackId = ids[0] ?? null
 
-  const initializeSelection = () => {
-    const shopIds = session.accessibleShops.map((shop) => shop.shopId)
-    const fallbackShopId = shopIds[0] ?? null
-
-    if (!fallbackShopId) {
+    if (!fallbackId) {
       selectedShopId.value = null
       return
     }
 
-    if (!selectedShopId.value || !shopIds.includes(selectedShopId.value)) {
-      selectedShopId.value = fallbackShopId
+    if (!selectedShopId.value || !ids.includes(selectedShopId.value)) {
+      selectedShopId.value = fallbackId
     }
   }
 
-  const setSelectedShop = (shopId: string) => {
-    if (!canAccessShop(shopId)) {
+  const canAccess = (shopId: string) =>
+    session.mode === 'admin' || session.accessibleShops.some((shop) => shop.shopId === shopId)
+
+  const select = (shopId: string) => {
+    if (!canAccess(shopId)) {
       return false
     }
 
@@ -35,8 +35,8 @@ export const useShopStore = defineStore('shop', () => {
   return {
     selectedShopId,
     selectedShop,
-    canAccessShop,
-    initializeSelection,
-    setSelectedShop
+    initialize,
+    canAccess,
+    select
   }
 })
