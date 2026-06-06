@@ -28,6 +28,8 @@ git pull origin $BRANCH
 
 pnpm install --filter core-api...
 
+pnpm --filter core-api prisma migrate deploy
+
 pnpm --filter core-api build
 
 pm2 restart $PM2_NAME --update-env

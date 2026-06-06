@@ -83,6 +83,7 @@ export class UsersService {
           name: dto.name,
           email: dto.email,
           password,
+          profileUrl: dto.profileUrl,
           role: dto.role,
           level: dto.level,
           permissions: dto.permissions?.length
@@ -204,6 +205,7 @@ export class UsersService {
       id: true,
       name: true,
       email: true,
+      profileUrl: true,
       role: true,
       level: true,
       permissions: true,

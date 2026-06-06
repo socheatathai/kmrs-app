@@ -34,6 +34,7 @@ export interface ApiClientConfig {
   baseURL: string;
   timeout?: number;
   getAccessToken?: () => string | null | undefined;
+  onUnauthorized?: () => Promise<boolean>;
   headers?: Record<string, string>;
 }
 
@@ -62,6 +63,7 @@ export class ApiClient {
   private readonly timeout: number;
   private readonly defaultHeaders: Record<string, string>;
   private readonly getAccessToken?: () => string | null | undefined;
+  private readonly onUnauthorized?: () => Promise<boolean>;
 
   constructor(config: ApiClientConfig) {
     this.baseURL = config.baseURL.replace(/\/+$/, '');
@@ -71,6 +73,7 @@ export class ApiClient {
       ...config.headers,
     };
     this.getAccessToken = config.getAccessToken;
+    this.onUnauthorized = config.onUnauthorized;
   }
 
   async request<T>(
@@ -78,6 +81,7 @@ export class ApiClient {
     endpoint: string,
     data?: unknown,
     init?: RequestInit,
+    didRetryUnauthorized = false,
   ): Promise<T> {
     const headers = new Headers(this.defaultHeaders);
     const token = this.getAccessToken?.();
@@ -99,11 +103,18 @@ export class ApiClient {
       body: data === undefined ? undefined : isFormData ? data : JSON.stringify(data),
     });
 
-    const payload = (await response.json()) as
-      | ApiSuccessResponse<T>
-      | ApiErrorResponse;
+    const payload = await this.parseResponse<T>(response);
 
     if (!response.ok || !payload.success) {
+      if (
+        response.status === 401 &&
+        !didRetryUnauthorized &&
+        this.onUnauthorized &&
+        (await this.onUnauthorized())
+      ) {
+        return this.request<T>(method, endpoint, data, init, true);
+      }
+
       const error = (payload as ApiErrorResponse).error ?? {
         statusCode: response.status,
         code: response.statusText || 'Error',
@@ -114,6 +125,43 @@ export class ApiClient {
     }
 
     return payload.data;
+  }
+
+  private async parseResponse<T>(
+    response: Response,
+  ): Promise<ApiSuccessResponse<T> | ApiErrorResponse> {
+    const meta = {
+      timestamp: new Date().toISOString(),
+    };
+    const text = await response.text();
+
+    if (!text) {
+      return response.ok
+        ? ({ success: true, data: undefined as T, meta } as ApiSuccessResponse<T>)
+        : {
+            success: false,
+            error: {
+              statusCode: response.status,
+              code: response.statusText || 'Error',
+              message: 'Request failed',
+            },
+            meta,
+          };
+    }
+
+    try {
+      return JSON.parse(text) as ApiSuccessResponse<T> | ApiErrorResponse;
+    } catch {
+      return {
+        success: false,
+        error: {
+          statusCode: response.status,
+          code: response.statusText || 'Error',
+          message: text || 'Request failed',
+        },
+        meta,
+      };
+    }
   }
 
   get<T>(endpoint: string): Promise<T> {

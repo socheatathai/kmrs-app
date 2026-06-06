@@ -214,7 +214,7 @@ Example response:
 
 ## Demo Seed Data
 
-- `merchant@example.com` / `secret123`
+- `nika@example.com` / `secret123`
 - `bistro@example.com` / `secret123`
 - `admin@example.com` / `secret123`
 - `staff@example.com` / `secret123`

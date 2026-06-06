@@ -42,6 +42,7 @@ export interface AuthUserProfile {
   id: string;
   name: string;
   email: string;
+  profileUrl: string | null;
   role: UserRole;
   level: number;
   permissions: Permission[];
@@ -54,6 +55,7 @@ export interface ManagedUserSummary {
   id: string;
   name: string;
   email: string;
+  profileUrl: string | null;
   role: UserRole;
   level: number;
   permissions: Permission[];
@@ -246,6 +248,7 @@ export interface AuditLogItem {
 export interface CreateManagedUserRequest {
   name: string;
   email: string;
+  profileUrl?: string;
   password: string;
   role: UserRole;
   level: number;
@@ -255,6 +258,7 @@ export interface CreateManagedUserRequest {
 export interface UpdateManagedUserRequest {
   name?: string;
   email?: string;
+  profileUrl?: string;
   password?: string;
   role?: UserRole;
   level?: number;

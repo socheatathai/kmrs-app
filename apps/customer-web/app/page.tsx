@@ -17,23 +17,32 @@ import { getPublicProducts } from "@/lib/api";
 const sampleShopSlug = "sunrise-cafe";
 const sampleMenuHref = `/${sampleShopSlug}`;
 
-async function getSampleProductHref() {
+async function getSampleProductLink() {
   try {
     const products = await getPublicProducts(sampleShopSlug);
     const product = products[0];
 
     if (product) {
-      return `/${sampleShopSlug}/products/${product.id}`;
+      return {
+        href: `/${sampleShopSlug}/products/${product.id}`,
+        label: "Product route",
+      };
     }
   } catch {
-    return sampleMenuHref;
+    return {
+      href: sampleMenuHref,
+      label: "Browse products",
+    };
   }
 
-  return sampleMenuHref;
+  return {
+    href: sampleMenuHref,
+    label: "Browse products",
+  };
 }
 
 export default async function Home() {
-  const sampleProductHref = await getSampleProductHref();
+  const sampleProductLink = await getSampleProductLink();
 
   return (
     <main className="min-h-screen overflow-hidden bg-canvas text-ink">
@@ -71,9 +80,9 @@ export default async function Home() {
             </Link>
             <Link
               className="inline-flex min-h-[3.15rem] items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-slate-300 bg-white px-5 py-3 text-base font-black text-ink shadow-sm transition hover:-translate-y-0.5 hover:border-slate-500 sm:min-h-[3.25rem] sm:px-6 sm:py-3.5"
-              href={sampleProductHref}
+              href={sampleProductLink.href}
             >
-              <span>Product route</span>
+              <span>{sampleProductLink.label}</span>
               <ExternalLink className="h-4 w-4" />
             </Link>
           </div>
@@ -265,7 +274,7 @@ export default async function Home() {
             </Link>
             <Link
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 font-bold text-ink shadow-sm transition hover:border-slate-400"
-              href={sampleProductHref}
+              href={sampleProductLink.href}
             >
               <ShoppingBag className="h-4 w-4 text-coral" />
               Product
