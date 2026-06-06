@@ -12,7 +12,29 @@ import {
   Sparkles,
 } from "lucide-react";
 
-export default function Home() {
+import { getPublicProducts } from "@/lib/api";
+
+const sampleShopSlug = "sunrise-cafe";
+const sampleMenuHref = `/${sampleShopSlug}`;
+
+async function getSampleProductHref() {
+  try {
+    const products = await getPublicProducts(sampleShopSlug);
+    const product = products[0];
+
+    if (product) {
+      return `/${sampleShopSlug}/products/${product.id}`;
+    }
+  } catch {
+    return sampleMenuHref;
+  }
+
+  return sampleMenuHref;
+}
+
+export default async function Home() {
+  const sampleProductHref = await getSampleProductHref();
+
   return (
     <main className="min-h-screen overflow-hidden bg-canvas text-ink">
       <section className="mx-auto grid min-h-[100svh] w-full max-w-7xl items-center gap-7 px-4 py-6 sm:px-8 sm:py-8 lg:grid-cols-[0.92fr_0.72fr] lg:grid-rows-[auto_auto] lg:gap-x-14 lg:gap-y-8 lg:px-10">
@@ -42,14 +64,14 @@ export default function Home() {
           <div className="mt-7 flex max-w-xl flex-col gap-3 sm:mt-9 sm:flex-row sm:flex-wrap">
             <Link
               className="inline-flex min-h-[3.15rem] items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-ink px-5 py-3 text-base font-black text-white shadow-[0_18px_38px_rgba(15,23,42,0.2)] transition hover:-translate-y-0.5 hover:bg-slate-800 sm:min-h-[3.25rem] sm:px-6 sm:py-3.5"
-              href="/sunrise-cafe"
+              href={sampleMenuHref}
             >
               <span>Open sample menu</span>
               <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               className="inline-flex min-h-[3.15rem] items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-slate-300 bg-white px-5 py-3 text-base font-black text-ink shadow-sm transition hover:-translate-y-0.5 hover:border-slate-500 sm:min-h-[3.25rem] sm:px-6 sm:py-3.5"
-              href="/sunrise-cafe/products/db386a55-7040-4fec-b4bd-9e7b77b05c89"
+              href={sampleProductHref}
             >
               <span>Product route</span>
               <ExternalLink className="h-4 w-4" />
@@ -236,14 +258,14 @@ export default function Home() {
           <nav className="grid gap-3 sm:flex sm:flex-wrap sm:justify-end">
             <Link
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 font-bold text-ink shadow-sm transition hover:border-slate-400"
-              href="/sunrise-cafe"
+              href={sampleMenuHref}
             >
               <QrCode className="h-4 w-4 text-emerald-700" />
               Sample menu
             </Link>
             <Link
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 font-bold text-ink shadow-sm transition hover:border-slate-400"
-              href="/sunrise-cafe/products/db386a55-7040-4fec-b4bd-9e7b77b05c89"
+              href={sampleProductHref}
             >
               <ShoppingBag className="h-4 w-4 text-coral" />
               Product
