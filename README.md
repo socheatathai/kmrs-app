@@ -8,7 +8,6 @@ KMRS is a pnpm workspace for a digital menu platform. The repo contains:
 - `packages/*`: shared API client, types, and workspace packages
 
 ## Workspace Layout
-
 ```text
 kmrs-app/
 |- apps/
