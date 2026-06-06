@@ -9,6 +9,7 @@ import {
   Phone,
   QrCode,
   Search,
+  ShoppingBag,
   Sparkles,
 } from "lucide-react";
 import Image from "next/image";
@@ -349,6 +350,34 @@ export function MenuShell({ categories, products, shop }: MenuShellProps) {
           </div>
         )}
       </section>
+
+      <footer className="border-t border-slate-200/80 bg-white/80 px-5 py-6 backdrop-blur md:px-8 lg:px-10">
+        <div className="mx-auto flex w-full max-w-6xl flex-col gap-5 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-black text-ink">Want a store like this?</p>
+            <p className="mt-1">Contact us.</p>
+          </div>
+
+          <nav className="grid gap-3 sm:flex sm:flex-wrap sm:justify-end">
+            <Link
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 font-bold text-ink shadow-sm transition hover:border-slate-400"
+              href="/"
+            >
+              <QrCode className="h-4 w-4 text-emerald-700" />
+              Create store
+            </Link>
+            {products[0] ? (
+              <Link
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 font-bold text-ink shadow-sm transition hover:border-slate-400"
+                href={`/#`}
+              >
+                <ShoppingBag className="h-4 w-4 text-coral" />
+                Contact us
+              </Link>
+            ) : null}
+          </nav>
+        </div>
+      </footer>
     </main>
   );
 }

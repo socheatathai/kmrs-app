@@ -29,6 +29,12 @@ export class ApiNotFoundError extends Error {
   }
 }
 
+export class ApiBadRequestError extends Error {
+  constructor() {
+    super("API request was rejected");
+  }
+}
+
 function getApiBaseUrl() {
   const rawBaseUrl = process.env.BASE_URL;
 
@@ -63,6 +69,10 @@ async function request<T extends z.ZodTypeAny>(
 
   if (response.status === 404) {
     throw new ApiNotFoundError();
+  }
+
+  if (response.status === 400) {
+    throw new ApiBadRequestError();
   }
 
   if (!response.ok) {

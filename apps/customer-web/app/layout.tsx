@@ -15,7 +15,7 @@ const notoSansKhmer = Noto_Sans_Khmer({
 });
 
 export const metadata: Metadata = {
-  title: "KMRS Customer Web",
+  title: "kors Customer Web",
   description: "Customer-facing digital menu for KMRS shops.",
 };
 

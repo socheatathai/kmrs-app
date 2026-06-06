@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { ApiNotFoundError } from "@/lib/api";
+import { ApiBadRequestError, ApiNotFoundError } from "@/lib/api";
 import { ProductDetailShell } from "@/components/menu/product-detail-shell";
 import { getPublicMenu, getPublicProduct } from "@/lib/api";
 
@@ -22,7 +22,10 @@ export async function generateMetadata({
       description: product.description ?? `View details for ${product.name}.`,
     };
   } catch (error) {
-    if (error instanceof ApiNotFoundError) {
+    if (
+      error instanceof ApiBadRequestError ||
+      error instanceof ApiNotFoundError
+    ) {
       return {
         title: "Product not found | KMRS",
       };
@@ -43,7 +46,10 @@ export default async function ProductPage({ params }: ProductPageProps) {
       getPublicProduct(slug, productId),
     ]);
   } catch (error) {
-    if (error instanceof ApiNotFoundError) {
+    if (
+      error instanceof ApiBadRequestError ||
+      error instanceof ApiNotFoundError
+    ) {
       notFound();
     }
 
