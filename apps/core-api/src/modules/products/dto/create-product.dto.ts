@@ -12,6 +12,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class CreateProductDto {
   @ApiProperty({ example: '22222222-2222-2222-2222-222222222222' })
@@ -31,6 +32,7 @@ export class CreateProductDto {
   description?: string;
 
   @ApiProperty({ example: '2.50' })
+  @Transform(({ value }) => (value === null || value === undefined ? value : String(value)))
   @IsNumberString()
   price!: string;
 

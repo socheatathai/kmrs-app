@@ -14,6 +14,29 @@ const links = computed(() =>
   )
 )
 
+const shopMenuLinks = computed(() => {
+  const shopId = shop.selectedShopId
+
+  if (session.mode !== 'merchant' || !shopId) {
+    return []
+  }
+
+  return [
+    { label: 'Description', to: `/shops/${shopId}/description`, icon: 'i-lucide-file-text', mode: 'merchant' as const, permission: 'shop.settings.view' as const },
+    { label: 'Catalog', to: `/shops/${shopId}/catalog`, icon: 'i-lucide-list', mode: 'merchant' as const, permission: 'shop.view' as const }
+  ].filter((item) => session.can(item.permission))
+})
+
+const merchantLinks = computed(() => {
+  if (session.mode !== 'merchant') {
+    return links.value.filter((item) => item.to !== '/dashboard')
+  }
+
+  return links.value
+    .filter((item) => item.to !== '/dashboard')
+    .flatMap((item) => item.to === '/shops' ? [item, ...shopMenuLinks.value] : [item])
+})
+
 const navGroups = computed(() => [
   {
     label: 'Workspace',
@@ -21,12 +44,24 @@ const navGroups = computed(() => [
   },
   {
     label: session.mode === 'admin' ? 'Operations' : 'Merchant',
-    items: links.value.filter((item) => item.to !== '/dashboard')
+    items: merchantLinks.value
   }
 ].filter((group) => group.items.length))
 
-const title = computed(() => links.value.find((item) => route.path === item.to || route.path.startsWith(`${item.to}/`))?.label ?? 'Dashboard')
-const isActive = (path: string) => route.path === path || route.path.startsWith(`${path}/`)
+const isActive = (path: string) => {
+  if (path === '/shops') {
+    return route.path === '/shops'
+  }
+
+  if (path.endsWith('/catalog')) {
+    return route.path === path || route.path.startsWith(path) || route.path.startsWith(path.replace('/catalog', '/products'))
+  }
+
+  return route.path === path || route.path.startsWith(`${path}/`)
+}
+const title = computed(() =>
+  navGroups.value.flatMap((group) => group.items).find((item) => isActive(item.to))?.label ?? 'Dashboard'
+)
 const isGroupActive = (items: typeof links.value) => items.some((item) => isActive(item.to))
 const openGroups = reactive<Record<string, boolean>>({})
 
@@ -81,16 +116,16 @@ const handleLogout = async () => {
             <span class="nav-chevron" aria-hidden="true" />
           </summary>
           <div class="nav-section-items">
-            <NuxtLink
-              v-for="item in group.items"
-              :key="item.to"
-              :to="item.to"
-              class="nav-link"
-              :class="{ active: isActive(item.to) }"
-            >
-              <span class="nav-icon" :class="item.icon" aria-hidden="true" />
-              <span>{{ item.label }}</span>
-            </NuxtLink>
+            <template v-for="item in group.items" :key="item.to">
+              <NuxtLink
+                :to="item.to"
+                class="nav-link"
+                :class="{ active: isActive(item.to) }"
+              >
+                <span class="nav-icon" :class="item.icon" aria-hidden="true" />
+                <span>{{ item.label }}</span>
+              </NuxtLink>
+            </template>
           </div>
         </details>
       </nav>
@@ -166,17 +201,17 @@ const handleLogout = async () => {
                 <span class="nav-chevron" aria-hidden="true" />
               </summary>
               <div class="nav-section-items">
-                <NuxtLink
-                  v-for="item in group.items"
-                  :key="item.to"
-                  :to="item.to"
-                  class="nav-link"
-                  :class="{ active: isActive(item.to) }"
-                  @click="drawerOpen = false"
-                >
-                  <span class="nav-icon" :class="item.icon" aria-hidden="true" />
-                  <span>{{ item.label }}</span>
-                </NuxtLink>
+                <template v-for="item in group.items" :key="item.to">
+                  <NuxtLink
+                    :to="item.to"
+                    class="nav-link"
+                    :class="{ active: isActive(item.to) }"
+                    @click="drawerOpen = false"
+                  >
+                    <span class="nav-icon" :class="item.icon" aria-hidden="true" />
+                    <span>{{ item.label }}</span>
+                  </NuxtLink>
+                </template>
               </div>
             </details>
           </nav>

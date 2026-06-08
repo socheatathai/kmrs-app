@@ -10,6 +10,13 @@ const { data: logs, pending, error } = await useAsyncData(
   () => `audit-logs-${auth.user?.id ?? 'anonymous'}`,
   () => client.getAuditLogs()
 )
+const columns = [
+  { key: 'action', label: 'Action' },
+  { key: 'entity', label: 'Entity' },
+  { key: 'method', label: 'Method' },
+  { key: 'statusCode', label: 'Status' },
+  { key: 'createdAt', label: 'Created' }
+]
 </script>
 
 <template>
@@ -24,21 +31,16 @@ const { data: logs, pending, error } = await useAsyncData(
     <div v-if="pending" class="empty">Loading logs...</div>
     <div v-else-if="error" class="error">Unable to load audit logs.</div>
     <div v-else-if="!logs?.length" class="empty">No audit logs found.</div>
-    <div v-else class="table">
-      <div class="row head five">
-        <span>Action</span>
-        <span>Entity</span>
-        <span>Method</span>
-        <span>Status</span>
-        <span>Created</span>
-      </div>
-      <div v-for="log in logs" :key="log.id" class="row five">
-        <strong>{{ log.action }}</strong>
-        <span>{{ log.entity || 'System' }}</span>
-        <span>{{ log.method }}</span>
-        <span>{{ log.statusCode }}</span>
-        <span>{{ new Date(log.createdAt).toLocaleString() }}</span>
-      </div>
-    </div>
+    <DataTable v-else row-class="five" :columns="columns" :rows="logs">
+      <template #cell-action="{ value }">
+        <strong>{{ value }}</strong>
+      </template>
+      <template #cell-entity="{ value }">
+        {{ value || 'System' }}
+      </template>
+      <template #cell-createdAt="{ value }">
+        {{ new Date(String(value)).toLocaleString() }}
+      </template>
+    </DataTable>
   </section>
 </template>

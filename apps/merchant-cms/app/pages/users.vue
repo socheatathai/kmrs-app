@@ -10,6 +10,13 @@ const { data: users, pending, error } = await useAsyncData(
   () => `users-${auth.user?.id ?? 'anonymous'}`,
   () => client.getUsers()
 )
+const columns = [
+  { key: 'name', label: 'Name' },
+  { key: 'email', label: 'Email' },
+  { key: 'role', label: 'Role' },
+  { key: 'level', label: 'Level' },
+  { key: 'status', label: 'Status' }
+]
 </script>
 
 <template>
@@ -24,21 +31,19 @@ const { data: users, pending, error } = await useAsyncData(
     <div v-if="pending" class="empty">Loading users...</div>
     <div v-else-if="error" class="error">Unable to load users.</div>
     <div v-else-if="!users?.length" class="empty">No users found.</div>
-    <div v-else class="table">
-      <div class="row head five">
-        <span>Name</span>
-        <span>Email</span>
-        <span>Role</span>
-        <span>Level</span>
-        <span>Status</span>
-      </div>
-      <div v-for="user in users" :key="user.id" class="row five">
-        <strong>{{ user.name }}</strong>
-        <span class="truncate">{{ user.email }}</span>
-        <span>{{ user.role }}</span>
-        <span>L{{ user.level }}</span>
-        <span class="pill" :class="user.isActive ? 'ok' : 'warn'">{{ user.isActive ? 'Active' : 'Inactive' }}</span>
-      </div>
-    </div>
+    <DataTable v-else row-class="five" :columns="columns" :rows="users">
+      <template #cell-name="{ row }">
+        <strong>{{ row.name }}</strong>
+      </template>
+      <template #cell-email="{ value }">
+        <span class="truncate">{{ value }}</span>
+      </template>
+      <template #cell-level="{ value }">
+        L{{ value }}
+      </template>
+      <template #cell-status="{ row }">
+        <span class="pill" :class="row.isActive ? 'ok' : 'warn'">{{ row.isActive ? 'Active' : 'Inactive' }}</span>
+      </template>
+    </DataTable>
   </section>
 </template>
