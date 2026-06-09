@@ -1,8 +1,7 @@
 <template>
-  <div>
-    <NuxtRouteAnnouncer />
-    <NuxtLayout>
-      <NuxtPage />
-    </NuxtLayout>
-  </div>
+  <NuxtRouteAnnouncer />
+  <UToaster position="bottom-right" />
+  <NuxtLayout>
+    <NuxtPage />
+  </NuxtLayout>
 </template>

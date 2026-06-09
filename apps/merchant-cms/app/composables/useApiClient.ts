@@ -6,6 +6,7 @@ export const useApiClient = () => {
 
   return createApiClient({
     baseURL: config.public.apiBase,
-    getAccessToken: () => auth.accessToken
+    getAccessToken: () => auth.accessToken,
+    onUnauthorized: () => auth.refreshSession()
   })
 }

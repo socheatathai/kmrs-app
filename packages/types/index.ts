@@ -42,6 +42,7 @@ export interface AuthUserProfile {
   id: string;
   name: string;
   email: string;
+  profileUrl: string | null;
   role: UserRole;
   level: number;
   permissions: Permission[];
@@ -54,6 +55,7 @@ export interface ManagedUserSummary {
   id: string;
   name: string;
   email: string;
+  profileUrl: string | null;
   role: UserRole;
   level: number;
   permissions: Permission[];
@@ -176,7 +178,14 @@ export interface CreateShopRequest {
   address?: string;
 }
 
-export interface UpdateShopRequest extends Partial<CreateShopRequest> {
+export type UpdateShopRequest = Partial<
+  Omit<CreateShopRequest, 'description' | 'logoUrl' | 'coverUrl' | 'phone' | 'address'>
+> & {
+  description?: string | null;
+  logoUrl?: string | null;
+  coverUrl?: string | null;
+  phone?: string | null;
+  address?: string | null;
   isActive?: boolean;
 }
 
@@ -202,7 +211,13 @@ export interface CreateProductRequest {
   isAvailable?: boolean;
 }
 
-export interface UpdateProductRequest extends Partial<CreateProductRequest> {}
+export type UpdateProductRequest = Partial<
+  Omit<CreateProductRequest, 'description' | 'imageUrl' | 'imageKey'>
+> & {
+  description?: string | null;
+  imageUrl?: string | null;
+  imageKey?: string | null;
+}
 
 export interface UploadImageResult {
   url: string;
@@ -246,6 +261,7 @@ export interface AuditLogItem {
 export interface CreateManagedUserRequest {
   name: string;
   email: string;
+  profileUrl?: string;
   password: string;
   role: UserRole;
   level: number;
@@ -255,6 +271,7 @@ export interface CreateManagedUserRequest {
 export interface UpdateManagedUserRequest {
   name?: string;
   email?: string;
+  profileUrl?: string;
   password?: string;
   role?: UserRole;
   level?: number;

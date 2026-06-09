@@ -26,33 +26,33 @@ export class UpdateShopDto {
   @MaxLength(50)
   slug?: string;
 
-  @ApiPropertyOptional({ example: 'Now serving dinner and desserts.' })
+  @ApiPropertyOptional({ example: 'Now serving dinner and desserts.', nullable: true })
   @IsOptional()
   @IsString()
   @MaxLength(1000)
-  description?: string;
+  description?: string | null;
 
-  @ApiPropertyOptional({ example: 'https://cdn.example.com/new-logo.png' })
+  @ApiPropertyOptional({ example: 'https://cdn.example.com/new-logo.png', nullable: true })
   @IsOptional()
   @IsUrl()
-  logoUrl?: string;
+  logoUrl?: string | null;
 
-  @ApiPropertyOptional({ example: 'https://cdn.example.com/new-cover.png' })
+  @ApiPropertyOptional({ example: 'https://cdn.example.com/new-cover.png', nullable: true })
   @IsOptional()
   @IsUrl()
-  coverUrl?: string;
+  coverUrl?: string | null;
 
-  @ApiPropertyOptional({ example: '+85512999999' })
+  @ApiPropertyOptional({ example: '+85512999999', nullable: true })
   @IsOptional()
   @IsString()
   @MaxLength(30)
-  phone?: string;
+  phone?: string | null;
 
-  @ApiPropertyOptional({ example: 'Siem Reap, Cambodia' })
+  @ApiPropertyOptional({ example: 'Siem Reap, Cambodia', nullable: true })
   @IsOptional()
   @IsString()
   @MaxLength(255)
-  address?: string;
+  address?: string | null;
 
   @ApiPropertyOptional({ example: true })
   @IsOptional()

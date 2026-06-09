@@ -1,155 +1,237 @@
 <script setup lang="ts">
-import { CMS_NAV_ITEMS, routeWithShop } from '~/constants/navigation'
+import { NAV_ITEMS } from '~/constants/navigation'
 
 const route = useRoute()
 const auth = useAuthStore()
 const session = useSessionStore()
-const shopStore = useShopStore()
-const { can } = usePermissions()
+const shop = useShopStore()
+const drawerOpen = ref(false)
+const currentYear = new Date().getFullYear()
 
-const selectedShopId = computed(() => shopStore.selectedShopId || '')
-const selectedShopLabel = computed(() => shopStore.selectedShop?.shopName || 'Select shop')
-
-const visibleNavGroups = computed(() =>
-  CMS_NAV_ITEMS
-    .filter((group) => group.mode === session.mode)
-    .map((group) => ({
-      ...group,
-      to: group.to,
-      children: group.children
-        ?.filter((child) => can(child.permission))
-        .map((child) => ({
-          ...child,
-          to: child.requiresShop ? routeWithShop(child.to, selectedShopId.value) : child.to
-        }))
-    }))
-    .filter((group) => can(group.permission) || Boolean(group.children?.length))
+const links = computed(() =>
+  NAV_ITEMS.filter((item) =>
+    (item.mode === 'all' || item.mode === session.mode) && session.can(item.permission)
+  )
 )
 
-const pageTitle = computed(() => {
-  for (const group of visibleNavGroups.value) {
-    if (group.to && (route.path === group.to || route.path.startsWith(`${group.to}/`))) {
-      return group.label
-    }
+const shopMenuLinks = computed(() => {
+  const shopId = shop.selectedShopId
 
-    const activeChild = group.children?.find((child) => route.path === child.to || route.path.startsWith(`${child.to}/`))
-    if (activeChild) {
-      return activeChild.label
-    }
+  if (session.mode !== 'merchant' || !shopId) {
+    return []
   }
 
-  return session.mode === 'admin' ? 'Admin' : 'Merchant'
+  return [
+    { label: 'Description', to: `/shops/${shopId}/description`, icon: 'i-lucide-file-text', mode: 'merchant' as const, permission: 'shop.settings.view' as const },
+    { label: 'Catalog', to: `/shops/${shopId}/catalog`, icon: 'i-lucide-list', mode: 'merchant' as const, permission: 'shop.view' as const },
+    { label: 'QR Codes', to: `/shops/${shopId}/qrcodes`, icon: 'i-lucide-qr-code', mode: 'merchant' as const, permission: 'qrcode.view' as const }
+  ].filter((item) => session.can(item.permission))
 })
 
-const handleLogout = async () => {
-  await auth.logout()
-  return navigateTo('/login')
+const merchantLinks = computed(() => {
+  if (session.mode !== 'merchant') {
+    return links.value.filter((item) => item.to !== '/dashboard')
+  }
+
+  return links.value
+    .filter((item) => item.to !== '/dashboard')
+    .flatMap((item) => item.to === '/shops' ? [item, ...shopMenuLinks.value] : [item])
+})
+
+const navGroups = computed(() => [
+  {
+    label: 'Workspace',
+    items: links.value.filter((item) => item.to === '/dashboard')
+  },
+  {
+    label: session.mode === 'admin' ? 'Operations' : 'Merchant',
+    items: merchantLinks.value
+  }
+].filter((group) => group.items.length))
+
+const isActive = (path: string) => {
+  if (path === '/shops') {
+    return route.path === '/shops'
+  }
+
+  if (path.endsWith('/catalog')) {
+    return route.path === path || route.path.startsWith(path) || route.path.startsWith(path.replace('/catalog', '/products'))
+  }
+
+  return route.path === path || route.path.startsWith(`${path}/`)
+}
+const title = computed(() =>
+  navGroups.value.flatMap((group) => group.items).find((item) => isActive(item.to))?.label ?? 'Dashboard'
+)
+const isGroupActive = (items: typeof links.value) => items.some((item) => isActive(item.to))
+const openGroups = reactive<Record<string, boolean>>({})
+
+watch(
+  navGroups,
+  (groups) => {
+    for (const group of groups) {
+      openGroups[group.label] ??= isGroupActive(group.items)
+
+      if (isGroupActive(group.items)) {
+        openGroups[group.label] = true
+      }
+    }
+  },
+  { immediate: true }
+)
+
+const setGroupOpen = (label: string, event: Event) => {
+  openGroups[label] = (event.target as HTMLDetailsElement).open
 }
 
-const handleShopChange = (event: Event) => {
-  const shopId = (event.target as HTMLSelectElement).value
-  shopStore.setSelectedShop(shopId)
+const handleLogout = async () => {
+  drawerOpen.value = false
+  await auth.logout()
+  return navigateTo('/login')
 }
 </script>
 
 <template>
-  <div class="app-shell">
+  <div class="shell">
     <aside class="sidebar">
-      <div class="sidebar-header">
-        <div class="brand-lockup">
+      <div class="sidebar-head">
+        <div class="brand">
           <div class="brand-mark">K</div>
           <div>
-            <div class="brand-name">KMRS</div>
-            <div class="brand-sub">{{ session.mode === 'admin' ? 'Platform Admin' : 'Merchant Workspace' }}</div>
+            <div class="brand-title">KMRS</div>
+            <div class="brand-sub">{{ session.mode === 'admin' ? 'Admin Console' : 'Merchant CMS' }}</div>
           </div>
         </div>
-        <span class="sidebar-toggle">⌄</span>
       </div>
 
-      <div class="sidebar-search">
-        <span>⌕</span>
-        <input type="search" placeholder="Search..." />
-        <kbd>CTRL</kbd>
-      </div>
-
-      <nav class="nav">
-        <div v-for="group in visibleNavGroups" :key="`${group.mode}-${group.label}`" class="nav-group">
-          <NuxtLink
-            v-if="group.to"
-            :to="group.to"
-            class="nav-link"
-            :class="{ active: route.path === group.to || route.path.startsWith(`${group.to}/`) }"
-          >
-            <span class="nav-icon">{{ group.icon }}</span>
-            {{ group.label }}
-          </NuxtLink>
-
-          <div v-else class="nav-section">
-            <div class="nav-section-label">
-              <span class="nav-icon">{{ group.icon }}</span>
-              {{ group.label }}
-            </div>
-            <div class="nav-section-items">
+      <nav class="nav" aria-label="Main navigation">
+        <details
+          v-for="group in navGroups"
+          :key="group.label"
+          class="nav-section"
+          :open="openGroups[group.label]"
+          @toggle="setGroupOpen(group.label, $event)"
+        >
+          <summary class="nav-section-toggle">
+            <span>{{ group.label }}</span>
+            <span class="nav-chevron" aria-hidden="true" />
+          </summary>
+          <div class="nav-section-items">
+            <template v-for="item in group.items" :key="item.to">
               <NuxtLink
-                v-for="child in group.children"
-                :key="child.to"
-                :to="child.to"
-                class="nav-link sub"
-                :class="{ active: route.path === child.to || route.path.startsWith(`${child.to}/`) }"
+                :to="item.to"
+                class="nav-link"
+                :class="{ active: isActive(item.to) }"
               >
-                <span class="nav-icon">{{ child.icon }}</span>
-                {{ child.label }}
+                <span class="nav-icon" :class="item.icon" aria-hidden="true" />
+                <span>{{ item.label }}</span>
               </NuxtLink>
-            </div>
+            </template>
           </div>
-        </div>
+        </details>
       </nav>
 
-      <div class="sidebar-footer">
-        <div v-if="session.mode === 'merchant' && session.accessibleShops.length > 0" class="shop-switcher">
-          <label class="field-label" for="shop-select">Selected shop</label>
-          <select id="shop-select" :value="selectedShopId" @change="handleShopChange">
-            <option v-for="shop in session.accessibleShops" :key="shop.shopId" :value="shop.shopId">
-              {{ shop.shopName }}
-            </option>
-          </select>
-        </div>
-
+      <div class="user-box">
         <div class="user-chip">
-          <div class="avatar">{{ session.displayName.slice(0, 2).toUpperCase() }}</div>
+          <div class="avatar">
+            <img v-if="session.profileUrl" :src="session.profileUrl" :alt="session.displayName">
+            <span v-else>{{ session.initials }}</span>
+          </div>
           <div>
             <div class="user-name">{{ session.displayName }}</div>
-            <div class="user-role">{{ session.roleLabel }}</div>
+            <div class="user-role">{{ session.username }}</div>
           </div>
         </div>
-        <button class="btn ghost" type="button" @click="handleLogout">
-          Sign out
-        </button>
+        <button class="button ghost" type="button" @click="handleLogout">Sign out</button>
       </div>
     </aside>
 
-    <div class="main">
+    <div class="workspace">
       <header class="topbar">
-        <div class="topbar-title">
-          <span class="topbar-icon">▣</span>
-          <h1 class="page-title">{{ pageTitle }}</h1>
+        <button class="icon-button menu-button" type="button" aria-label="Open navigation" @click="drawerOpen = true">
+          <span class="hamburger" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+          <span class="menu-label">Menu</span>
+        </button>
+        <div>
+          <div class="page-title">{{ title }}</div>
+          <div class="page-subtitle">{{ session.mode === 'admin' ? 'Platform operations' : shop.selectedShop?.shopName || 'Merchant workspace' }}</div>
         </div>
       </header>
 
-      <div class="mode-tabs">
-        <span class="mode-tab active">{{ session.mode === 'admin' ? 'General' : 'Workspace' }}</span>
-        <span class="mode-tab">Members</span>
-        <span class="mode-tab">Notifications</span>
-        <span class="mode-tab">Security</span>
-        <span v-if="session.mode === 'merchant'" class="mode-tab-meta">{{ selectedShopLabel }}</span>
-        <div class="mode-doc">Documentation ↗</div>
-      </div>
-
       <main class="content">
-        <div class="content-inner">
-          <slot />
-        </div>
+        <slot />
       </main>
+
+      <footer class="app-footer">
+        <span>KMRS Merchant CMS</span>
+        <span>{{ currentYear }}</span>
+      </footer>
     </div>
+
+    <Teleport to="body">
+      <div v-if="drawerOpen" class="drawer-wrap">
+        <button class="drawer-backdrop" type="button" aria-label="Close navigation" @click="drawerOpen = false" />
+        <aside class="drawer">
+          <div class="drawer-head">
+            <div class="brand">
+              <div class="brand-mark">K</div>
+              <div>
+                <div class="brand-title">KMRS</div>
+                <div class="brand-sub">{{ session.mode === 'admin' ? 'Admin Console' : 'Merchant CMS' }}</div>
+              </div>
+            </div>
+            <button class="icon-button" type="button" aria-label="Close navigation" @click="drawerOpen = false">
+              <span class="close-symbol" aria-hidden="true">X</span>
+            </button>
+          </div>
+
+          <nav class="nav" aria-label="Mobile navigation">
+            <details
+              v-for="group in navGroups"
+              :key="group.label"
+              class="nav-section"
+              :open="openGroups[group.label]"
+              @toggle="setGroupOpen(group.label, $event)"
+            >
+              <summary class="nav-section-toggle">
+                <span>{{ group.label }}</span>
+                <span class="nav-chevron" aria-hidden="true" />
+              </summary>
+              <div class="nav-section-items">
+                <template v-for="item in group.items" :key="item.to">
+                  <NuxtLink
+                    :to="item.to"
+                    class="nav-link"
+                    :class="{ active: isActive(item.to) }"
+                    @click="drawerOpen = false"
+                  >
+                    <span class="nav-icon" :class="item.icon" aria-hidden="true" />
+                    <span>{{ item.label }}</span>
+                  </NuxtLink>
+                </template>
+              </div>
+            </details>
+          </nav>
+
+          <div class="user-box">
+            <div class="user-chip">
+              <div class="avatar">
+                <img v-if="session.profileUrl" :src="session.profileUrl" :alt="session.displayName">
+                <span v-else>{{ session.initials }}</span>
+              </div>
+              <div>
+                <div class="user-name">{{ session.displayName }}</div>
+                <div class="user-role">{{ session.username }}</div>
+              </div>
+            </div>
+            <button class="button ghost" type="button" @click="handleLogout">Sign out</button>
+          </div>
+        </aside>
+      </div>
+    </Teleport>
   </div>
 </template>

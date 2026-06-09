@@ -12,6 +12,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class UpdateProductDto {
   @ApiPropertyOptional({ example: '33333333-3333-3333-3333-333333333333' })
@@ -26,29 +27,31 @@ export class UpdateProductDto {
   @MaxLength(120)
   name?: string;
 
-  @ApiPropertyOptional({ example: 'Espresso over ice.' })
+  @ApiPropertyOptional({ example: 'Espresso over ice.', nullable: true })
   @IsOptional()
   @IsString()
   @MaxLength(1000)
-  description?: string;
+  description?: string | null;
 
   @ApiPropertyOptional({ example: '3.00' })
   @IsOptional()
+  @Transform(({ value }) => (value === null || value === undefined ? value : String(value)))
   @IsNumberString()
   price?: string;
 
   @ApiPropertyOptional({
     example: 'https://cdn.example.com/iced-americano.png',
+    nullable: true,
   })
   @IsOptional()
   @IsUrl()
-  imageUrl?: string;
+  imageUrl?: string | null;
 
-  @ApiPropertyOptional({ example: 'products/iced-americano-uuid.webp' })
+  @ApiPropertyOptional({ example: 'products/iced-americano-uuid.webp', nullable: true })
   @IsOptional()
   @IsString()
   @MaxLength(500)
-  imageKey?: string;
+  imageKey?: string | null;
 
   @ApiPropertyOptional({ example: 4 })
   @IsOptional()

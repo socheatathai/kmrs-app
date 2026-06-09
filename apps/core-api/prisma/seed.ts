@@ -100,10 +100,11 @@ async function main() {
   const password = await bcrypt.hash('secret123', 10);
 
   const merchant = await prisma.user.upsert({
-    where: { email: 'merchant@example.com' },
+    where: { email: 'nika@example.com' },
     update: {
-      name: 'Merchant Demo',
+      name: 'Nika Demo',
       password,
+      profileUrl: 'https://picsum.photos/id/64/240/240',
       role: UserRole.MERCHANT_OWNER,
       level: 2,
       permissions: [
@@ -136,9 +137,10 @@ async function main() {
       ],
     },
     create: {
-      name: 'Merchant Demo',
-      email: 'merchant@example.com',
+      name: 'Nika Demo',
+      email: 'nika@example.com',
       password,
+      profileUrl: 'https://picsum.photos/id/64/240/240',
       role: UserRole.MERCHANT_OWNER,
       level: 2,
       permissions: [
@@ -177,6 +179,7 @@ async function main() {
     update: {
       name: 'Bistro Demo',
       password,
+      profileUrl: 'https://picsum.photos/id/65/240/240',
       role: UserRole.MERCHANT_OWNER,
       level: 2,
       permissions: [
@@ -212,6 +215,7 @@ async function main() {
       name: 'Bistro Demo',
       email: 'bistro@example.com',
       password,
+      profileUrl: 'https://picsum.photos/id/65/240/240',
       role: UserRole.MERCHANT_OWNER,
       level: 2,
       permissions: [
@@ -250,6 +254,7 @@ async function main() {
     update: {
       name: 'Admin Demo',
       password,
+      profileUrl: 'https://picsum.photos/id/1005/240/240',
       role: UserRole.SUPER_ADMIN,
       level: 1,
       permissions: allPermissions,
@@ -258,6 +263,7 @@ async function main() {
       name: 'Admin Demo',
       email: 'admin@example.com',
       password,
+      profileUrl: 'https://picsum.photos/id/1005/240/240',
       role: UserRole.SUPER_ADMIN,
       level: 1,
       permissions: allPermissions,
@@ -269,6 +275,7 @@ async function main() {
     update: {
       name: 'Staff Demo',
       password,
+      profileUrl: 'https://picsum.photos/id/1011/240/240',
       role: UserRole.STAFF,
       level: 3,
       permissions: [
@@ -285,6 +292,7 @@ async function main() {
       name: 'Staff Demo',
       email: 'staff@example.com',
       password,
+      profileUrl: 'https://picsum.photos/id/1011/240/240',
       role: UserRole.STAFF,
       level: 3,
       permissions: [
@@ -614,7 +622,7 @@ async function main() {
       id: '99560382-583e-4dc5-ab18-b5285147d0d4',
       shopId: sunriseCafe.id,
       name: 'Counter QR',
-      url: 'https://kmrs.app/menu/sunrise-cafe',
+      url: 'https://kmrs.tech/sunrise-cafe',
       imageUrl: 'https://picsum.photos/id/237/400/400',
       isActive: true,
     },
@@ -622,7 +630,7 @@ async function main() {
       id: 'c70d4d1d-e888-42f6-a95f-f63f7ebc90ee',
       shopId: sunriseCafe.id,
       name: 'Patio QR',
-      url: 'https://kmrs.app/menu/sunrise-cafe',
+      url: 'https://kmrs.tech/sunrise-cafe',
       imageUrl: 'https://picsum.photos/id/238/400/400',
       isActive: true,
     },
@@ -630,7 +638,7 @@ async function main() {
       id: 'eb105871-b65c-45df-af7d-660a9d4d41e2',
       shopId: moonlightBistro.id,
       name: 'Host Stand QR',
-      url: 'https://kmrs.app/menu/moonlight-bistro',
+      url: 'https://kmrs.tech/moonlight-bistro',
       imageUrl: 'https://picsum.photos/id/239/400/400',
       isActive: true,
     },

@@ -22,6 +22,12 @@ export class CreateUserDto {
   @IsEmail()
   email!: string;
 
+  @ApiPropertyOptional({ example: 'https://example.com/profile.jpg' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  profileUrl?: string;
+
   @ApiProperty({ example: 'secret123' })
   @IsString()
   @MinLength(6)

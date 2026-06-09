@@ -5,7 +5,9 @@ Nuxt 4 dashboard for KMRS admins and merchants.
 ## Current Scope
 
 - login against the real `core-api`
+- merchant self-registration against `POST /auth/register`
 - cookie-backed access and refresh token session state
+- automatic one-time API retry after token refresh on `401`
 - role-based admin vs merchant mode
 - permission-aware navigation and route guards
 - shop selection for merchant users
@@ -61,8 +63,7 @@ apps/merchant-cms/
 |  |- layouts/
 |  |- middleware/
 |  |- pages/
-|  |  |- admin/
-|  |  `- merchant/
+|  |  `- shops/
 |  |- stores/
 |  `- app.vue
 |- public/
@@ -77,30 +78,14 @@ Shared:
 
 - `/`
 - `/login`
+- `/register`
 - `/dashboard`
-- `/settings`
-- `/products`
 - `/users`
-
-Admin:
-
-- `/admin/dashboard`
-- `/admin/accounts`
-- `/admin/accounts/create`
-- `/admin/accounts/:userId`
-- `/admin/audit-logs`
-- `/admin/settings`
-
-Merchant:
-
-- `/merchant/dashboard`
-- `/merchant/subscription`
-- `/merchant/settings`
-- `/merchant/shops`
-- `/merchant/shops/:shopId/settings`
-- `/merchant/shops/:shopId/categories`
-- `/merchant/shops/:shopId/products`
-- `/merchant/shops/:shopId/qrcodes`
+- `/audit-logs`
+- `/subscription`
+- `/shops`
+- `/shops/:shopId`
+- `/shops/:shopId/catalog`
 
 ## Auth and State
 
@@ -108,7 +93,10 @@ Merchant:
 - access token cookie: `kmrs_access_token`
 - refresh token cookie: `kmrs_refresh_token`
 - selected shop cookie: `kmrs_selected_shop_id`
-- the app refreshes the session if `GET /auth/me` returns `401`
+- the app initializes the session through `GET /auth/me`
+- protected API calls retry once after a successful refresh on `401`
+- logout clears cached Nuxt async data for the previous session
+- login and register pages include show/hide password controls
 
 ## API Usage
 
@@ -128,12 +116,22 @@ The app uses `@kmrs-app/api-client` for:
 
 The login page is prefilled for local development with:
 
-- `merchant@example.com` / `secret123`
+- `nika@example.com` / `secret123`
 
 Admin demo accounts are seeded by `apps/core-api/prisma/seed.ts`.
 
+## Recent Updates
+
+- added `/register` for merchant self-service account creation
+- added automatic API refresh-and-retry handling through the shared API client
+- removed duplicate dashboard auth bootstrap requests
+- made async data keys session-aware to reduce stale data after account switching
+- added local shop-access guards for `/shops/:shopId` and `/shops/:shopId/catalog`
+- fixed sidebar dropdown groups so users can toggle them manually
+- added show/hide password toggles to login and register forms
+
 ## Notes
 
-- middleware files enforce auth, admin-only, merchant-only, and permission-based route access
-- `app/pages/dashboard.vue`, `app/pages/settings.vue`, `app/pages/products/index.vue`, and `app/pages/users/index.vue` act as compatibility redirects
+- middleware files enforce guest-only and authenticated route access
+- shop detail and catalog pages redirect back to `/shops` when the selected user cannot access the route shop
 - there is currently no dedicated `lint` or `test` script in this app

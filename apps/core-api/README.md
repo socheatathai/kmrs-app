@@ -47,6 +47,7 @@ Recommended local values:
 PORT=3333
 CORS_ORIGINS="http://localhost:3000,http://localhost:4200"
 PUBLIC_MENU_BASE_URL="http://localhost:4200"
+PUBLIC_MENU_PATH_PREFIX=""
 ```
 
 ## Commands
@@ -214,7 +215,7 @@ Example response:
 
 ## Demo Seed Data
 
-- `merchant@example.com` / `secret123`
+- `nika@example.com` / `secret123`
 - `bistro@example.com` / `secret123`
 - `admin@example.com` / `secret123`
 - `staff@example.com` / `secret123`

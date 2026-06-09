@@ -25,6 +25,12 @@ export class UpdateUserDto {
   @IsEmail()
   email?: string;
 
+  @ApiPropertyOptional({ example: 'https://example.com/profile.jpg' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  profileUrl?: string;
+
   @ApiPropertyOptional({ example: 'secret123' })
   @IsOptional()
   @IsString()

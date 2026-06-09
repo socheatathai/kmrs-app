@@ -11,13 +11,13 @@ import {
 import { UserRole } from '@prisma/client';
 
 export class RegisterDto {
-  @ApiProperty({ example: 'Merchant Demo' })
+  @ApiProperty({ example: 'Nika Demo' })
   @IsString()
   @IsNotEmpty()
   @MaxLength(120)
   name!: string;
 
-  @ApiProperty({ example: 'merchant@example.com' })
+  @ApiProperty({ example: 'nika@example.com' })
   @IsEmail()
   email!: string;
 
