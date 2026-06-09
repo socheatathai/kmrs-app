@@ -20,6 +20,17 @@ import { PrismaService } from '../../database/prisma/prisma.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
+const normalizeSlug = (value: string) => {
+  const slug = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 50);
+
+  return slug || 'shop';
+};
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -51,16 +62,30 @@ export class AuthService {
     }
 
     const password = await bcrypt.hash(dto.password, 10);
+    const baseSlug = normalizeSlug(dto.shopName);
+    const shopSlug = await this.createUniqueShopSlug(baseSlug);
     const user = await this.database.execute('auth.register.createUser', () =>
-      this.prisma.user.create({
-        data: {
-          name: dto.name,
-          email: dto.email,
-          password,
-          role: UserRole.MERCHANT_OWNER,
-          level: LEVELS.ADMIN_MIDDLE,
-          permissions: [...LEVEL_DEFAULT_PERMISSIONS[LEVELS.ADMIN_MIDDLE]],
-        },
+      this.prisma.$transaction(async (transaction) => {
+        const createdUser = await transaction.user.create({
+          data: {
+            name: dto.name,
+            email: dto.email,
+            password,
+            role: UserRole.MERCHANT_OWNER,
+            level: LEVELS.ADMIN_MIDDLE,
+            permissions: [...LEVEL_DEFAULT_PERMISSIONS[LEVELS.ADMIN_MIDDLE]],
+          },
+        });
+
+        await transaction.shop.create({
+          data: {
+            ownerId: createdUser.id,
+            name: dto.shopName,
+            slug: shopSlug,
+          },
+        });
+
+        return createdUser;
       }),
     );
 
@@ -75,17 +100,17 @@ export class AuthService {
     );
 
     if (!user) {
-      throw new UnauthorizedException(this.i18n.t('auth.invalidCredentials'));
+      throw new UnauthorizedException(this.i18n.t('auth.accountNotFound'));
     }
 
     const isValid = await bcrypt.compare(dto.password, user.password);
 
     if (!isValid) {
-      throw new UnauthorizedException(this.i18n.t('auth.invalidCredentials'));
+      throw new UnauthorizedException(this.i18n.t('auth.invalidPassword'));
     }
 
     if (!user.isActive) {
-      throw new UnauthorizedException(this.i18n.t('auth.invalidCredentials'));
+      throw new UnauthorizedException(this.i18n.t('auth.accountInactive'));
     }
 
     return this.buildAuthResponse(user);
@@ -212,6 +237,8 @@ export class AuthService {
   }
 
   private async buildAuthResponse(user: User) {
+    await this.ensureMerchantOwnerShop(user);
+
     const access = await this.accessControl.getAccessProfile(
       user.id,
       user.level,
@@ -266,5 +293,58 @@ export class AuthService {
         accessibleShops: access.shops,
       },
     };
+  }
+
+  private async ensureMerchantOwnerShop(user: User) {
+    if (user.role !== UserRole.MERCHANT_OWNER) {
+      return;
+    }
+
+    const existingShop = await this.database.execute(
+      'auth.ensureMerchantOwnerShop.findFirst',
+      () =>
+        this.prisma.shop.findFirst({
+          where: { ownerId: user.id },
+          select: { id: true },
+        }),
+    );
+
+    if (existingShop) {
+      return;
+    }
+
+    const shopName = `${user.name} Store`;
+    const shopSlug = await this.createUniqueShopSlug(normalizeSlug(shopName));
+
+    await this.database.execute('auth.ensureMerchantOwnerShop.create', () =>
+      this.prisma.shop.create({
+        data: {
+          ownerId: user.id,
+          name: shopName,
+          slug: shopSlug,
+        },
+      }),
+    );
+  }
+
+  private async createUniqueShopSlug(baseSlug: string) {
+    for (let index = 0; index < 100; index += 1) {
+      const suffix = index === 0 ? '' : `-${index + 1}`;
+      const candidate = `${baseSlug.slice(0, 50 - suffix.length)}${suffix}`;
+      const existingShop = await this.database.execute(
+        'auth.register.findShopSlug',
+        () =>
+          this.prisma.shop.findUnique({
+            where: { slug: candidate },
+            select: { id: true },
+          }),
+      );
+
+      if (!existingShop) {
+        return candidate;
+      }
+    }
+
+    return `${baseSlug.slice(0, 37)}-${Date.now().toString(36)}`;
   }
 }
