@@ -44,6 +44,26 @@ const logoUpload = ref<UploadImageResult | null>(null)
 const coverUpload = ref<UploadImageResult | null>(null)
 const isSaving = ref(false)
 const formError = ref('')
+let logoObjectUrl = ''
+let coverObjectUrl = ''
+
+const setLogoPreview = (value: string) => {
+  if (logoObjectUrl) {
+    URL.revokeObjectURL(logoObjectUrl)
+    logoObjectUrl = ''
+  }
+
+  logoPreview.value = value
+}
+
+const setCoverPreview = (value: string) => {
+  if (coverObjectUrl) {
+    URL.revokeObjectURL(coverObjectUrl)
+    coverObjectUrl = ''
+  }
+
+  coverPreview.value = value
+}
 
 watch(shop, (value) => {
   if (!value) {
@@ -58,8 +78,8 @@ watch(shop, (value) => {
   form.phone = value.phone ?? ''
   form.address = value.address ?? ''
   form.isActive = value.isActive
-  logoPreview.value = value.logoUrl ?? ''
-  coverPreview.value = value.coverUrl ?? ''
+  setLogoPreview(value.logoUrl ?? '')
+  setCoverPreview(value.coverUrl ?? '')
 }, { immediate: true })
 
 const handleLogoChange = (event: Event) => {
@@ -68,7 +88,15 @@ const handleLogoChange = (event: Event) => {
 
   logoFile.value = file
   logoUpload.value = null
-  logoPreview.value = file ? URL.createObjectURL(file) : form.logoUrl
+
+  if (file) {
+    setLogoPreview('')
+    logoObjectUrl = URL.createObjectURL(file)
+    logoPreview.value = logoObjectUrl
+  } else {
+    setLogoPreview(form.logoUrl)
+  }
+
   formError.value = ''
 }
 
@@ -78,14 +106,22 @@ const handleCoverChange = (event: Event) => {
 
   coverFile.value = file
   coverUpload.value = null
-  coverPreview.value = file ? URL.createObjectURL(file) : form.coverUrl
+
+  if (file) {
+    setCoverPreview('')
+    coverObjectUrl = URL.createObjectURL(file)
+    coverPreview.value = coverObjectUrl
+  } else {
+    setCoverPreview(form.coverUrl)
+  }
+
   formError.value = ''
 }
 
 const clearLogo = () => {
   logoFile.value = null
   logoUpload.value = null
-  logoPreview.value = ''
+  setLogoPreview('')
   form.logoUrl = ''
   formError.value = ''
 }
@@ -93,10 +129,20 @@ const clearLogo = () => {
 const clearCover = () => {
   coverFile.value = null
   coverUpload.value = null
-  coverPreview.value = ''
+  setCoverPreview('')
   form.coverUrl = ''
   formError.value = ''
 }
+
+onBeforeUnmount(() => {
+  if (logoObjectUrl) {
+    URL.revokeObjectURL(logoObjectUrl)
+  }
+
+  if (coverObjectUrl) {
+    URL.revokeObjectURL(coverObjectUrl)
+  }
+})
 
 const nullableText = (value: string) => {
   const trimmed = value.trim()
@@ -111,13 +157,13 @@ const saveShop = async () => {
     if (logoFile.value && !logoUpload.value) {
       logoUpload.value = await client.uploadImage(logoFile.value, 'prod')
       form.logoUrl = logoUpload.value.url
-      logoPreview.value = logoUpload.value.url
+      setLogoPreview(logoUpload.value.url)
     }
 
     if (coverFile.value && !coverUpload.value) {
       coverUpload.value = await client.uploadImage(coverFile.value, 'prod')
       form.coverUrl = coverUpload.value.url
-      coverPreview.value = coverUpload.value.url
+      setCoverPreview(coverUpload.value.url)
     }
 
     const payload: UpdateShopRequest = {
@@ -202,19 +248,32 @@ const saveShop = async () => {
         <div class="form-grid">
           <label class="field">
             Logo URL
-            <input v-model="form.logoUrl" class="input" type="url" :disabled="isSaving" @input="logoPreview = form.logoUrl">
+            <input v-model="form.logoUrl" class="input" type="url" :disabled="isSaving" @input="setLogoPreview(form.logoUrl)">
           </label>
           <label class="field">
             Cover URL
-            <input v-model="form.coverUrl" class="input" type="url" :disabled="isSaving" @input="coverPreview = form.coverUrl">
+            <input v-model="form.coverUrl" class="input" type="url" :disabled="isSaving" @input="setCoverPreview(form.coverUrl)">
           </label>
-          <label class="field">
+        </div>
+
+        <div class="upload-preview-grid">
+          <label class="field upload-preview-field">
             Upload logo
             <input class="input file-input" type="file" accept="image/jpeg,image/png,image/webp" :disabled="isSaving" @change="handleLogoChange">
+            <div class="inline-image-preview logo-inline-preview">
+              <img v-if="logoPreview" :src="logoPreview" :alt="`${form.name} logo preview`">
+              <span v-else>No logo preview</span>
+            </div>
+            <p v-if="logoFile" class="muted upload-file-name">{{ logoFile.name }}</p>
           </label>
-          <label class="field">
+          <label class="field upload-preview-field">
             Upload cover
             <input class="input file-input" type="file" accept="image/jpeg,image/png,image/webp" :disabled="isSaving" @change="handleCoverChange">
+            <div class="inline-image-preview cover-inline-preview">
+              <img v-if="coverPreview" :src="coverPreview" :alt="`${form.name} cover preview`">
+              <span v-else>No cover preview</span>
+            </div>
+            <p v-if="coverFile" class="muted upload-file-name">{{ coverFile.name }}</p>
           </label>
         </div>
 

@@ -23,7 +23,8 @@ const shopMenuLinks = computed(() => {
 
   return [
     { label: 'Description', to: `/shops/${shopId}/description`, icon: 'i-lucide-file-text', mode: 'merchant' as const, permission: 'shop.settings.view' as const },
-    { label: 'Catalog', to: `/shops/${shopId}/catalog`, icon: 'i-lucide-list', mode: 'merchant' as const, permission: 'shop.view' as const }
+    { label: 'Catalog', to: `/shops/${shopId}/catalog`, icon: 'i-lucide-list', mode: 'merchant' as const, permission: 'shop.view' as const },
+    { label: 'QR Codes', to: `/shops/${shopId}/qrcodes`, icon: 'i-lucide-qr-code', mode: 'merchant' as const, permission: 'qrcode.view' as const }
   ].filter((item) => session.can(item.permission))
 })
 
