@@ -14,7 +14,8 @@ export default () => ({
     process.env.AUTH_LOGIN_THROTTLE_LIMIT ?? '5',
     10,
   ),
-  publicMenuBaseUrl: process.env.PUBLIC_MENU_BASE_URL ?? 'https://kmrs.app',
+  publicMenuBaseUrl: process.env.PUBLIC_MENU_BASE_URL ?? 'https://kmrs.tech',
+  publicMenuPathPrefix: process.env.PUBLIC_MENU_PATH_PREFIX ?? '',
   spaces: {
     endpoint: process.env.DO_SPACES_ENDPOINT ?? '',
     region: process.env.DO_SPACES_REGION ?? '',

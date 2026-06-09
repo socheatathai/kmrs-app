@@ -47,6 +47,7 @@ Recommended local values:
 PORT=3333
 CORS_ORIGINS="http://localhost:3000,http://localhost:4200"
 PUBLIC_MENU_BASE_URL="http://localhost:4200"
+PUBLIC_MENU_PATH_PREFIX=""
 ```
 
 ## Commands

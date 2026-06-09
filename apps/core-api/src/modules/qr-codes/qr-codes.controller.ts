@@ -34,7 +34,7 @@ export class QrCodesController {
 
   @ApiOperation({ summary: 'Create a QR code for a shop menu' })
   @ApiOkResponse({ description: 'Created QR code' })
-  @Permissions(PERMISSIONS.qrCodesManage)
+  @Permissions(PERMISSIONS.qrCodeCreate)
   @Post()
   create(
     @CurrentUser() user: AuthUser,
@@ -57,7 +57,7 @@ export class QrCodesController {
 
   @ApiOperation({ summary: 'Update a QR code' })
   @ApiOkResponse({ description: 'Updated QR code' })
-  @Permissions(PERMISSIONS.qrCodesManage)
+  @Permissions(PERMISSIONS.qrCodeUpdate)
   @Patch(':qrCodeId')
   update(
     @CurrentUser() user: AuthUser,
@@ -70,7 +70,7 @@ export class QrCodesController {
 
   @ApiOperation({ summary: 'Delete a QR code' })
   @ApiOkResponse({ description: 'Deleted QR code' })
-  @Permissions(PERMISSIONS.qrCodesManage)
+  @Permissions(PERMISSIONS.qrCodeDelete)
   @Delete(':qrCodeId')
   remove(
     @CurrentUser() user: AuthUser,
