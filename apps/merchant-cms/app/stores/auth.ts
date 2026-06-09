@@ -36,6 +36,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const login = async (payload: LoginRequest) => {
     pending.value = true
+    error.value = ''
     try {
       const response = await makeClient(config.public.apiBase).login(payload)
       apply(response)
@@ -50,6 +51,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const register = async (payload: RegisterRequest) => {
     pending.value = true
+    error.value = ''
     try {
       const response = await makeClient(config.public.apiBase).register(payload)
       apply(response)
