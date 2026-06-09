@@ -26,18 +26,27 @@ export class UpdateShopDto {
   @MaxLength(50)
   slug?: string;
 
-  @ApiPropertyOptional({ example: 'Now serving dinner and desserts.', nullable: true })
+  @ApiPropertyOptional({
+    example: 'Now serving dinner and desserts.',
+    nullable: true,
+  })
   @IsOptional()
   @IsString()
   @MaxLength(1000)
   description?: string | null;
 
-  @ApiPropertyOptional({ example: 'https://cdn.example.com/new-logo.png', nullable: true })
+  @ApiPropertyOptional({
+    example: 'https://cdn.example.com/new-logo.png',
+    nullable: true,
+  })
   @IsOptional()
   @IsUrl()
   logoUrl?: string | null;
 
-  @ApiPropertyOptional({ example: 'https://cdn.example.com/new-cover.png', nullable: true })
+  @ApiPropertyOptional({
+    example: 'https://cdn.example.com/new-cover.png',
+    nullable: true,
+  })
   @IsOptional()
   @IsUrl()
   coverUrl?: string | null;
