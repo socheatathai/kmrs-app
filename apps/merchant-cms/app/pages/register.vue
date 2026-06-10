@@ -4,7 +4,6 @@ definePageMeta({
 })
 
 const auth = useAuthStore()
-const session = useSessionStore()
 
 const form = reactive({
   name: '',
@@ -44,7 +43,7 @@ const submit = async () => {
       password: form.password
     })
 
-    return navigateTo(session.landingPath)
+    return navigateTo('/subscription?choosePlan=1')
   } catch {
     localError.value = auth.error || 'Unable to create account. Please try again.'
   }

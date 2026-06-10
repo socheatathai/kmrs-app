@@ -46,6 +46,8 @@ const editing = reactive<Record<string, string>>({});
 const isCreating = ref(false);
 const busyId = ref("");
 const formError = ref("");
+const updateCandidate = ref<QrCodeSummary | null>(null);
+const deleteCandidate = ref<QrCodeSummary | null>(null);
 
 watch(
   qrCodes,
@@ -79,22 +81,38 @@ const createQrCode = async () => {
   }
 };
 
-const updateQrCode = async (qrCode: QrCodeSummary) => {
+const askUpdateQrCode = (qrCode: QrCodeSummary) => {
+  updateCandidate.value = qrCode;
+};
+
+const cancelUpdateQrCode = () => {
+  updateCandidate.value = null;
+};
+
+const confirmUpdateQrCode = async () => {
+  const qrCode = updateCandidate.value;
+
+  if (!qrCode) {
+    return;
+  }
+
   busyId.value = qrCode.id;
+  const nextLabel = editing[qrCode.id]?.trim() || qrCode.name || "Shop menu";
 
   try {
     await client.updateQrCode(shopId.value, qrCode.id, {
-      name: editing[qrCode.id]?.trim() || qrCode.name || "Shop menu",
+      name: nextLabel,
       isActive: qrCode.isActive,
     });
     await refresh();
+    updateCandidate.value = null;
     toast.add({
-      title: "QR code updated",
-      description: "The label was saved.",
+      title: "Scan card updated",
+      description: `${nextLabel} label was saved.`,
     });
   } catch (error) {
     toast.add({
-      title: "Unable to update QR code",
+      title: "Unable to update scan card",
       description: error instanceof Error ? error.message : "Please try again.",
     });
   } finally {
@@ -110,6 +128,10 @@ const toggleQrCode = async (qrCode: QrCodeSummary) => {
       isActive: !qrCode.isActive,
     });
     await refresh();
+    toast.add({
+      title: !qrCode.isActive ? "Scan card activated" : "Scan card paused",
+      description: `${qrCode.name || "Shop menu"} is now ${!qrCode.isActive ? "available for scans" : "paused"}.`,
+    });
   } catch (error) {
     toast.add({
       title: "Unable to change QR status",
@@ -120,8 +142,18 @@ const toggleQrCode = async (qrCode: QrCodeSummary) => {
   }
 };
 
-const deleteQrCode = async (qrCode: QrCodeSummary) => {
-  if (!window.confirm(`Delete ${qrCode.name || "this QR code"}?`)) {
+const askDeleteQrCode = (qrCode: QrCodeSummary) => {
+  deleteCandidate.value = qrCode;
+};
+
+const cancelDeleteQrCode = () => {
+  deleteCandidate.value = null;
+};
+
+const confirmDeleteQrCode = async () => {
+  const qrCode = deleteCandidate.value;
+
+  if (!qrCode) {
     return;
   }
 
@@ -130,13 +162,14 @@ const deleteQrCode = async (qrCode: QrCodeSummary) => {
   try {
     await client.deleteQrCode(shopId.value, qrCode.id);
     await refresh();
+    deleteCandidate.value = null;
     toast.add({
-      title: "QR code deleted",
-      description: "The scan code was removed.",
+      title: "Scan card deleted",
+      description: `${qrCode.name || "Shop menu"} was removed.`,
     });
   } catch (error) {
     toast.add({
-      title: "Unable to delete QR code",
+      title: "Unable to delete scan card",
       description: error instanceof Error ? error.message : "Please try again.",
     });
   } finally {
@@ -176,10 +209,10 @@ const downloadQrCode = (qrCode: QrCodeSummary) => {
     <section class="panel qr-page-panel">
       <div class="panel-head qr-page-head">
         <div>
-          <span class="qr-eyebrow">Menu scanner</span>
-          <h2>{{ data?.shop.name || "QR codes" }}</h2>
+          <span class="qr-eyebrow">Menu scan cards</span>
+          <h2>{{ data?.shop.name || "Shop" }} QR codes</h2>
           <p class="muted">
-            Generate branded scan cards that open the public menu website.
+            Create and manage printable QR cards that open this shop's public menu.
           </p>
         </div>
         <NuxtLink class="button" :to="`/shops/${shopId}/description`"
@@ -293,7 +326,7 @@ const downloadQrCode = (qrCode: QrCodeSummary) => {
                   class="button ghost compact"
                   type="button"
                   :disabled="busyId === qrCode.id"
-                  @click="updateQrCode(qrCode)"
+                  @click="askUpdateQrCode(qrCode)"
                 >
                   Save
                 </button>
@@ -340,7 +373,7 @@ const downloadQrCode = (qrCode: QrCodeSummary) => {
                   class="button ghost compact danger"
                   type="button"
                   :disabled="busyId === qrCode.id"
-                  @click="deleteQrCode(qrCode)"
+                  @click="askDeleteQrCode(qrCode)"
                 >
                   Delete
                 </button>
@@ -350,5 +383,45 @@ const downloadQrCode = (qrCode: QrCodeSummary) => {
         </div>
       </template>
     </section>
+
+    <Teleport to="body">
+      <div v-if="updateCandidate" class="modal-wrap" role="presentation">
+        <button class="modal-backdrop" type="button" aria-label="Cancel update" @click="cancelUpdateQrCode" />
+        <section class="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="update-qr-title">
+          <div>
+            <h2 id="update-qr-title">Update scan card?</h2>
+            <p class="muted">
+              Save the display label as {{ editing[updateCandidate.id]?.trim() || updateCandidate.name || "Shop menu" }}.
+            </p>
+          </div>
+          <div class="form-actions confirm-actions">
+            <button class="button ghost" type="button" :disabled="Boolean(busyId)" @click="cancelUpdateQrCode">Cancel</button>
+            <button class="button primary" type="button" :disabled="Boolean(busyId)" @click="confirmUpdateQrCode">
+              {{ busyId ? "Saving..." : "Save changes" }}
+            </button>
+          </div>
+        </section>
+      </div>
+    </Teleport>
+
+    <Teleport to="body">
+      <div v-if="deleteCandidate" class="modal-wrap" role="presentation">
+        <button class="modal-backdrop" type="button" aria-label="Cancel delete" @click="cancelDeleteQrCode" />
+        <section class="confirm-dialog" role="alertdialog" aria-modal="true" aria-labelledby="delete-qr-title">
+          <div>
+            <h2 id="delete-qr-title">Delete scan card?</h2>
+            <p class="muted">
+              {{ deleteCandidate.name || "Shop menu" }} will be removed and printed copies may stop working.
+            </p>
+          </div>
+          <div class="form-actions confirm-actions">
+            <button class="button ghost" type="button" :disabled="Boolean(busyId)" @click="cancelDeleteQrCode">Cancel</button>
+            <button class="button danger-solid" type="button" :disabled="Boolean(busyId)" @click="confirmDeleteQrCode">
+              {{ busyId ? "Deleting..." : "Delete" }}
+            </button>
+          </div>
+        </section>
+      </div>
+    </Teleport>
   </div>
 </template>
