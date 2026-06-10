@@ -243,8 +243,8 @@ See [apps/merchant-cms/README.md](apps/merchant-cms/README.md).
 
 `apps/core-api` loads:
 
-- `.env.local` or `apps/core-api/.env.local` when `NODE_ENV` is not `production`
-- `.env.production` or `apps/core-api/.env.production` when `NODE_ENV=production`
+- `.env` first, then `.env.local` or `apps/core-api/.env.local` when `NODE_ENV` is not `production`
+- `.env` first, then `.env.production` or `apps/core-api/.env.production` when `NODE_ENV=production`
 
 The API requires:
 
