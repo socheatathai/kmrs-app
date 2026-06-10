@@ -20,11 +20,51 @@ jest.mock('bcrypt', () => ({
 }));
 
 describe('AuthService', () => {
+  const userFindUnique = jest.fn();
+  const userCreate = jest.fn();
+  const userUpdate = jest.fn();
+  const shopCreate = jest.fn();
+  const shopFindUnique = jest.fn();
+  const shopFindFirst = jest.fn();
+  const transaction = jest.fn(
+    async (
+      handler: (transactionClient: {
+        user: {
+          findUnique: typeof userFindUnique;
+          create: typeof userCreate;
+          update: typeof userUpdate;
+        };
+        shop: {
+          create: typeof shopCreate;
+          findUnique: typeof shopFindUnique;
+          findFirst: typeof shopFindFirst;
+        };
+      }) => Promise<unknown>,
+    ) =>
+      handler({
+        user: {
+          findUnique: userFindUnique,
+          create: userCreate,
+          update: userUpdate,
+        },
+        shop: {
+          create: shopCreate,
+          findUnique: shopFindUnique,
+          findFirst: shopFindFirst,
+        },
+      }),
+  );
   const prisma = {
+    $transaction: transaction,
     user: {
-      findUnique: jest.fn(),
-      create: jest.fn(),
-      update: jest.fn(),
+      findUnique: userFindUnique,
+      create: userCreate,
+      update: userUpdate,
+    },
+    shop: {
+      create: shopCreate,
+      findUnique: shopFindUnique,
+      findFirst: shopFindFirst,
     },
   } as unknown as PrismaService;
   const database = {
@@ -63,6 +103,13 @@ describe('AuthService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    userFindUnique.mockReset();
+    userCreate.mockReset();
+    userUpdate.mockReset();
+    shopCreate.mockReset();
+    shopFindUnique.mockReset();
+    shopFindFirst.mockReset();
+    transaction.mockClear();
     service = new AuthService(
       prisma,
       database,
@@ -79,25 +126,27 @@ describe('AuthService', () => {
         name: 'Admin',
         email: 'admin@example.com',
         password: 'secret123',
+        shopName: 'Admin Store',
         role: UserRole.SUPER_ADMIN,
       }),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('rejects duplicate emails during registration', async () => {
-    prisma.user.findUnique = jest.fn().mockResolvedValue({ id: 'user-1' });
+    userFindUnique.mockResolvedValue({ id: 'user-1' });
 
     await expect(
       service.register({
         name: 'Merchant',
         email: 'merchant@example.com',
         password: 'secret123',
+        shopName: 'Sunrise Cafe',
       }),
     ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it('returns a token and merchant payload on registration', async () => {
-    const createMock = jest.fn().mockResolvedValue({
+    userCreate.mockResolvedValue({
       id: 'user-1',
       name: 'Merchant',
       email: 'merchant@example.com',
@@ -108,25 +157,39 @@ describe('AuthService', () => {
       tokenVersion: 0,
       password: 'hashed',
     });
-
-    prisma.user.findUnique = jest.fn().mockResolvedValue(null);
-    prisma.user.create = createMock;
+    userFindUnique.mockResolvedValue(null);
+    shopFindUnique.mockResolvedValue(null);
+    shopFindFirst.mockResolvedValue({ id: 'shop-1' });
+    shopCreate.mockResolvedValue({
+      id: 'shop-1',
+      ownerId: 'user-1',
+      name: 'Sunrise Cafe',
+      slug: 'sunrise-cafe',
+    });
     (bcrypt.hash as jest.Mock).mockResolvedValue('hashed');
 
     const result = await service.register({
       name: 'Merchant',
       email: 'merchant@example.com',
       password: 'secret123',
+      shopName: 'Sunrise Cafe',
     });
 
     expect(result.accessToken).toBe('token');
     expect(result.refreshToken).toBe('token');
     expect(result.user.role).toBe(UserRole.MERCHANT_OWNER);
-    expect(createMock).toHaveBeenCalled();
+    expect(userCreate).toHaveBeenCalled();
+    expect(shopCreate).toHaveBeenCalledWith({
+      data: {
+        ownerId: 'user-1',
+        name: 'Sunrise Cafe',
+        slug: 'sunrise-cafe',
+      },
+    });
   });
 
   it('rejects invalid login credentials', async () => {
-    prisma.user.findUnique = jest.fn().mockResolvedValue({
+    userFindUnique.mockResolvedValue({
       id: 'user-1',
       email: 'merchant@example.com',
       password: 'hashed',
@@ -152,7 +215,7 @@ describe('AuthService', () => {
       tokenVersion: 0,
       type: 'refresh',
     });
-    prisma.user.findUnique = jest.fn().mockResolvedValue({
+    userFindUnique.mockResolvedValue({
       id: 'user-1',
       name: 'Merchant',
       email: 'merchant@example.com',
@@ -164,7 +227,8 @@ describe('AuthService', () => {
       isActive: true,
       tokenVersion: 0,
     });
-    prisma.user.update = jest.fn().mockResolvedValue({ id: 'user-1' });
+    userUpdate.mockResolvedValue({ id: 'user-1' });
+    shopFindFirst.mockResolvedValue({ id: 'shop-1' });
     (bcrypt.compare as jest.Mock).mockResolvedValue(true);
     (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-refresh');
 
@@ -175,13 +239,12 @@ describe('AuthService', () => {
   });
 
   it('increments token version on logout', async () => {
-    prisma.user.findUnique = jest.fn().mockResolvedValue({ id: 'user-1' });
-    const updateMock = jest.fn().mockResolvedValue({ id: 'user-1' });
-    prisma.user.update = updateMock;
+    userFindUnique.mockResolvedValue({ id: 'user-1' });
+    userUpdate.mockResolvedValue({ id: 'user-1' });
 
     const result = await service.logout('user-1');
 
-    expect(updateMock).toHaveBeenCalledWith({
+    expect(userUpdate).toHaveBeenCalledWith({
       where: { id: 'user-1' },
       data: {
         refreshTokenHash: null,

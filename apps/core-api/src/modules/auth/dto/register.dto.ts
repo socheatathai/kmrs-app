@@ -26,6 +26,12 @@ export class RegisterDto {
   @MinLength(6)
   password!: string;
 
+  @ApiProperty({ example: 'Sunrise Cafe' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
+  shopName!: string;
+
   @ApiPropertyOptional({
     enum: [UserRole.MERCHANT_OWNER],
     example: UserRole.MERCHANT_OWNER,

@@ -74,6 +74,7 @@ export interface RegisterRequest {
   name: string;
   email: string;
   password: string;
+  shopName: string;
 }
 
 export interface RefreshTokenRequest {

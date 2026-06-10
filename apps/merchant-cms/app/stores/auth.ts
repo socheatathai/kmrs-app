@@ -16,14 +16,18 @@ export const useAuthStore = defineStore('auth', () => {
   const ready = ref(false)
   const pending = ref(false)
   const error = ref('')
+  const hasActiveSubscription = ref<boolean | null>(null)
   let refreshInFlight: Promise<AuthResponse | null> | null = null
+  let subscriptionCheckInFlight: Promise<boolean> | null = null
 
   const isAuthenticated = computed(() => Boolean(accessToken.value && user.value))
+  const needsPlanSelection = computed(() => user.value?.role === 'MERCHANT_OWNER' && hasActiveSubscription.value === false)
 
   const clear = () => {
     accessToken.value = null
     refreshToken.value = null
     user.value = null
+    hasActiveSubscription.value = null
     error.value = ''
   }
 
@@ -31,11 +35,17 @@ export const useAuthStore = defineStore('auth', () => {
     accessToken.value = payload.accessToken
     refreshToken.value = payload.refreshToken
     user.value = payload.user
+    hasActiveSubscription.value = null
     error.value = ''
+  }
+
+  const setActiveSubscriptionStatus = (value: boolean | null) => {
+    hasActiveSubscription.value = value
   }
 
   const login = async (payload: LoginRequest) => {
     pending.value = true
+    error.value = ''
     try {
       const response = await makeClient(config.public.apiBase).login(payload)
       apply(response)
@@ -50,6 +60,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const register = async (payload: RegisterRequest) => {
     pending.value = true
+    error.value = ''
     try {
       const response = await makeClient(config.public.apiBase).register(payload)
       apply(response)
@@ -93,6 +104,7 @@ export const useAuthStore = defineStore('auth', () => {
   const fetchMe = async () => {
     if (!accessToken.value) {
       user.value = null
+      hasActiveSubscription.value = null
       return null
     }
 
@@ -125,6 +137,37 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  const checkActiveSubscription = async (force = false) => {
+    if (!accessToken.value || user.value?.role !== 'MERCHANT_OWNER') {
+      hasActiveSubscription.value = null
+      return true
+    }
+
+    if (!force && hasActiveSubscription.value !== null) {
+      return hasActiveSubscription.value
+    }
+
+    subscriptionCheckInFlight ??= makeClient(config.public.apiBase, accessToken.value)
+      .getCurrentSubscription()
+      .then(() => {
+        hasActiveSubscription.value = true
+        return true
+      })
+      .catch((err) => {
+        if (err instanceof ApiClientError && err.statusCode === 404) {
+          hasActiveSubscription.value = false
+          return false
+        }
+
+        throw err
+      })
+      .finally(() => {
+        subscriptionCheckInFlight = null
+      })
+
+    return subscriptionCheckInFlight
+  }
+
   const logout = async () => {
     try {
       if (accessToken.value) {
@@ -143,12 +186,16 @@ export const useAuthStore = defineStore('auth', () => {
     ready,
     pending,
     error,
+    hasActiveSubscription,
     isAuthenticated,
+    needsPlanSelection,
     login,
     register,
     logout,
     initialize,
     fetchMe,
+    checkActiveSubscription,
+    setActiveSubscriptionStatus,
     refreshSession,
     clear
   }

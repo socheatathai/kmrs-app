@@ -1,7 +1,6 @@
 import { InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { QrCode } from '@prisma/client';
-import QRCode from 'qrcode';
 
 import { I18nService } from '../../common/i18n/i18n.service';
 import { DatabaseService } from '../../common/services/database.service';
@@ -11,18 +10,34 @@ import { PrismaService } from '../../database/prisma/prisma.service';
 import { ShopsService } from '../shops/shops.service';
 import { QrCodesService } from './qr-codes.service';
 
+const mockQrCodeToString = jest.fn<
+  Promise<string>,
+  [string, Record<string, unknown>]
+>();
+const qrCodeCreate = jest.fn();
+const qrCodeFindFirst = jest.fn();
+const qrCodeFindMany = jest.fn();
+const qrCodeUpdate = jest.fn();
+const qrCodeDelete = jest.fn();
+
 jest.mock('qrcode', () => ({
-  toString: jest.fn(),
+  __esModule: true,
+  default: {
+    toString: (...args: [string, Record<string, unknown>]) =>
+      mockQrCodeToString(...args),
+  },
+  toString: (...args: [string, Record<string, unknown>]) =>
+    mockQrCodeToString(...args),
 }));
 
 describe('QrCodesService', () => {
   const prisma = {
     qrCode: {
-      create: jest.fn(),
-      findFirst: jest.fn(),
-      findMany: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
+      create: qrCodeCreate,
+      findFirst: qrCodeFindFirst,
+      findMany: qrCodeFindMany,
+      update: qrCodeUpdate,
+      delete: qrCodeDelete,
     },
   } as unknown as PrismaService;
   const database = {
@@ -55,6 +70,12 @@ describe('QrCodesService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    mockQrCodeToString.mockReset();
+    qrCodeCreate.mockReset();
+    qrCodeFindFirst.mockReset();
+    qrCodeFindMany.mockReset();
+    qrCodeUpdate.mockReset();
+    qrCodeDelete.mockReset();
     service = new QrCodesService(
       prisma,
       database,
@@ -77,14 +98,12 @@ describe('QrCodesService', () => {
     configService.get = jest.fn((key: string) =>
       key === 'publicMenuBaseUrl' ? 'https://menu.example.com/' : '',
     );
-    (QRCode.toString as jest.Mock).mockResolvedValue(
+    mockQrCodeToString.mockResolvedValue(
       '<svg width="420" height="420"><path d="M0 0h1v1H0z"/></svg>',
     );
-    prisma.qrCode.create = jest
-      .fn()
-      .mockImplementation(({ data }: { data: QrCode }) =>
-        Promise.resolve(data),
-      );
+    qrCodeCreate.mockImplementation(({ data }: { data: QrCode }) =>
+      Promise.resolve(data),
+    );
 
     const result = await service.create(
       user,
@@ -93,7 +112,7 @@ describe('QrCodesService', () => {
       'en',
     );
 
-    expect(QRCode.toString).toHaveBeenCalledWith(
+    expect(mockQrCodeToString).toHaveBeenCalledWith(
       'https://menu.example.com/sunrise-cafe',
       {
         type: 'svg',
@@ -127,18 +146,16 @@ describe('QrCodesService', () => {
           ? '/menu/'
           : '',
     );
-    (QRCode.toString as jest.Mock).mockResolvedValue(
+    mockQrCodeToString.mockResolvedValue(
       '<svg width="420" height="420"><path d="M0 0h1v1H0z"/></svg>',
     );
-    prisma.qrCode.create = jest
-      .fn()
-      .mockImplementation(({ data }: { data: QrCode }) =>
-        Promise.resolve(data),
-      );
+    qrCodeCreate.mockImplementation(({ data }: { data: QrCode }) =>
+      Promise.resolve(data),
+    );
 
     await service.create(user, 'shop-1', { name: 'Front Door' }, 'en');
 
-    expect(QRCode.toString).toHaveBeenCalledWith(
+    expect(mockQrCodeToString).toHaveBeenCalledWith(
       'https://menu.example.com/menu/sunrise-cafe',
       {
         type: 'svg',
@@ -162,32 +179,42 @@ describe('QrCodesService', () => {
       id: 'qr-1',
       shopId: 'shop-1',
       name: 'Counter',
-      url: 'https://kmrs.app/sunrise-cafe',
+      url: 'https://kmrs.tech/sunrise-cafe',
       imageUrl: 'data:image/png;base64,old',
       isActive: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    prisma.qrCode.findMany = jest.fn().mockResolvedValue([staleQrCode]);
-    prisma.qrCode.update = jest
-      .fn()
-      .mockImplementation(({ data }: { data: Partial<QrCode> }) =>
-        Promise.resolve({ ...staleQrCode, ...data }),
-      );
-    (QRCode.toString as jest.Mock).mockResolvedValue(
+    qrCodeFindMany.mockResolvedValue([staleQrCode]);
+    qrCodeUpdate.mockImplementation(({ data }: { data: Partial<QrCode> }) =>
+      Promise.resolve({ ...staleQrCode, ...data }),
+    );
+    mockQrCodeToString.mockResolvedValue(
       '<svg width="420" height="420"><path d="M0 0h1v1H0z"/></svg>',
     );
 
     const result = await service.findByShop(user, 'shop-1', 'en');
 
     expect(result[0]?.url).toBe('https://kmrs.tech/sunrise-cafe');
-    expect(prisma.qrCode.update).toHaveBeenCalledWith({
-      where: { id: 'qr-1' },
-      data: {
-        url: 'https://kmrs.tech/sunrise-cafe',
-        imageUrl: expect.stringContaining('data:image/svg+xml;base64,'),
-      },
-    });
+    expect(qrCodeUpdate).toHaveBeenCalledTimes(1);
+
+    const updateCalls = qrCodeUpdate.mock.calls as unknown as Array<
+      [
+        {
+          where: { id: string };
+          data: { url: string; imageUrl: string };
+        },
+      ]
+    >;
+    const updateInput = updateCalls[0]?.[0];
+
+    if (!updateInput) {
+      throw new Error('Expected QR code update call');
+    }
+
+    expect(updateInput.where).toEqual({ id: 'qr-1' });
+    expect(updateInput.data.url).toBe('https://kmrs.tech/sunrise-cafe');
+    expect(updateInput.data.imageUrl).toContain('data:image/svg+xml;base64,');
   });
 
   it('throws a mapped error when QR generation fails', async () => {
@@ -200,7 +227,7 @@ describe('QrCodesService', () => {
       .fn()
       .mockResolvedValue(undefined);
     configService.get = jest.fn().mockReturnValue('https://menu.example.com/');
-    (QRCode.toString as jest.Mock).mockRejectedValue(new Error('boom'));
+    mockQrCodeToString.mockRejectedValue(new Error('boom'));
 
     await expect(
       service.create(user, 'shop-1', { name: 'Front Door' }, 'en'),

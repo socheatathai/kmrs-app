@@ -12,7 +12,10 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Transform, type TransformFnParams } from 'class-transformer';
+
+const toOptionalString = ({ value }: TransformFnParams): unknown =>
+  value === null || value === undefined ? value : String(value);
 
 export class UpdateProductDto {
   @ApiPropertyOptional({ example: '33333333-3333-3333-3333-333333333333' })
@@ -35,7 +38,7 @@ export class UpdateProductDto {
 
   @ApiPropertyOptional({ example: '3.00' })
   @IsOptional()
-  @Transform(({ value }) => (value === null || value === undefined ? value : String(value)))
+  @Transform(toOptionalString)
   @IsNumberString()
   price?: string;
 
@@ -47,7 +50,10 @@ export class UpdateProductDto {
   @IsUrl()
   imageUrl?: string | null;
 
-  @ApiPropertyOptional({ example: 'products/iced-americano-uuid.webp', nullable: true })
+  @ApiPropertyOptional({
+    example: 'products/iced-americano-uuid.webp',
+    nullable: true,
+  })
   @IsOptional()
   @IsString()
   @MaxLength(500)

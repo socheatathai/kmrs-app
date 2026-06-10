@@ -4,10 +4,10 @@ definePageMeta({
 })
 
 const auth = useAuthStore()
-const session = useSessionStore()
 
 const form = reactive({
   name: '',
+  shopName: '',
   email: '',
   password: '',
   confirmPassword: ''
@@ -20,18 +20,33 @@ const showConfirmPassword = ref(false)
 const submit = async () => {
   localError.value = ''
 
+  if (!form.email.trim()) {
+    localError.value = 'Please enter your email address.'
+    return
+  }
+
+  if (!form.shopName.trim()) {
+    localError.value = 'Please enter your store name.'
+    return
+  }
+
   if (form.password !== form.confirmPassword) {
     localError.value = 'Passwords do not match'
     return
   }
 
-  await auth.register({
-    name: form.name,
-    email: form.email,
-    password: form.password
-  })
+  try {
+    await auth.register({
+      name: form.name.trim(),
+      shopName: form.shopName.trim(),
+      email: form.email.trim(),
+      password: form.password
+    })
 
-  return navigateTo(session.landingPath)
+    return navigateTo('/subscription?choosePlan=1')
+  } catch {
+    localError.value = auth.error || 'Unable to create account. Please try again.'
+  }
 }
 </script>
 
@@ -50,6 +65,10 @@ const submit = async () => {
         <label class="field">
           Full name
           <input v-model="form.name" class="input" type="text" autocomplete="name" required>
+        </label>
+        <label class="field">
+          Store name
+          <input v-model="form.shopName" class="input" type="text" autocomplete="organization" required>
         </label>
         <label class="field">
           Email

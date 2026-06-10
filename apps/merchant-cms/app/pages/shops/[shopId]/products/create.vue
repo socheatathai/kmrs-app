@@ -123,7 +123,13 @@ const createProduct = async () => {
 
       <div v-if="pending" class="empty">Loading categories...</div>
       <div v-else-if="error" class="error">Unable to load categories.</div>
-      <div v-else-if="!categories?.length" class="empty">Create a category before adding products.</div>
+      <div v-else-if="!categories?.length" class="empty product-create-empty">
+        <div>
+          <strong>Create a category first</strong>
+          <p class="muted">Products need a category before they can be added to the catalog.</p>
+        </div>
+        <NuxtLink class="button primary" :to="`/shops/${shopId}/categories/create`">Create category</NuxtLink>
+      </div>
 
       <form v-else class="form" @submit.prevent="createProduct">
         <div class="form-grid">

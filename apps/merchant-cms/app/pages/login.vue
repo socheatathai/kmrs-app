@@ -10,6 +10,7 @@ const form = reactive({
   email: '',
   password: ''
 })
+const localError = ref('')
 const showPassword = ref(false)
 
 const demoCredentials = {
@@ -23,8 +24,22 @@ const fillDemoCredentials = () => {
 }
 
 const submit = async () => {
-  await auth.login(form)
-  return navigateTo(session.landingPath)
+  localError.value = ''
+
+  if (!form.email.trim()) {
+    localError.value = 'Please enter your email address.'
+    return
+  }
+
+  try {
+    await auth.login({
+      email: form.email.trim(),
+      password: form.password
+    })
+    return navigateTo(session.landingPath)
+  } catch {
+    localError.value = auth.error || 'Unable to sign in. Please try again.'
+  }
 }
 </script>
 
@@ -70,7 +85,7 @@ const submit = async () => {
             </button>
           </span>
         </label>
-        <div v-if="auth.error" class="error">{{ auth.error }}</div>
+        <div v-if="localError || auth.error" class="error">{{ localError || auth.error }}</div>
         <button class="button primary" type="submit" :disabled="auth.pending">
           {{ auth.pending ? 'Signing in...' : 'Sign in' }}
         </button>
