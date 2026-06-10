@@ -179,7 +179,7 @@ describe('QrCodesService', () => {
       id: 'qr-1',
       shopId: 'shop-1',
       name: 'Counter',
-      url: 'https://kmrs.app/sunrise-cafe',
+      url: 'https://kmrs.tech/sunrise-cafe',
       imageUrl: 'data:image/png;base64,old',
       isActive: true,
       createdAt: new Date(),
