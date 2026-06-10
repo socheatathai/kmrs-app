@@ -6,9 +6,13 @@ import * as bcrypt from 'bcrypt';
 import pg from 'pg';
 
 const isProduction = process.env.NODE_ENV === 'production';
-const envFilePath = isProduction ? '.env.production' : '.env.local';
+const envFilePaths = isProduction
+  ? ['.env', '.env.production']
+  : ['.env', '.env.local'];
 
-loadEnv({ path: envFilePath });
+for (const envFilePath of envFilePaths) {
+  loadEnv({ path: envFilePath });
+}
 
 const PERMISSIONS = {
   dashboardView: 'dashboard.view',

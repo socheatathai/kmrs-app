@@ -19,14 +19,15 @@ import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 
 const isProduction = process.env.NODE_ENV === 'production';
+const envFilePath = isProduction
+  ? ['.env', '.env.production', 'apps/core-api/.env', 'apps/core-api/.env.production']
+  : ['.env', '.env.local', 'apps/core-api/.env', 'apps/core-api/.env.local'];
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: isProduction
-        ? ['.env.production', 'apps/core-api/.env.production']
-        : ['.env.local', 'apps/core-api/.env.local'],
+      envFilePath,
       load: [appConfig],
     }),
     PrismaModule,
