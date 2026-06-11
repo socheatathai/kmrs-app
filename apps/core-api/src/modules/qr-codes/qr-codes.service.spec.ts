@@ -166,6 +166,70 @@ describe('QrCodesService', () => {
     );
   });
 
+  it('falls back when the configured public menu URL is blank', async () => {
+    shopsService.ensureAccess = jest.fn().mockResolvedValue({
+      id: 'shop-1',
+      slug: 'sunrise-cafe',
+      name: 'Sunrise Cafe',
+    });
+    planLimitService.assertCanCreateQrCode = jest
+      .fn()
+      .mockResolvedValue(undefined);
+    configService.get = jest.fn((key: string) =>
+      key === 'publicMenuBaseUrl' || key === 'PUBLIC_MENU_BASE_URL' ? '  ' : '',
+    );
+    mockQrCodeToString.mockResolvedValue(
+      '<svg width="420" height="420"><path d="M0 0h1v1H0z"/></svg>',
+    );
+    qrCodeCreate.mockImplementation(({ data }: { data: QrCode }) =>
+      Promise.resolve(data),
+    );
+
+    await service.create(user, 'shop-1', { name: 'Front Door' }, 'en');
+
+    expect(mockQrCodeToString).toHaveBeenCalledWith(
+      'https://kmrs.tech/sunrise-cafe',
+      {
+        type: 'svg',
+        errorCorrectionLevel: 'M',
+        margin: 1,
+        width: 420,
+      },
+    );
+  });
+
+  it('uses the raw env-style public menu URL when app config is missing', async () => {
+    shopsService.ensureAccess = jest.fn().mockResolvedValue({
+      id: 'shop-1',
+      slug: 'sunrise-cafe',
+      name: 'Sunrise Cafe',
+    });
+    planLimitService.assertCanCreateQrCode = jest
+      .fn()
+      .mockResolvedValue(undefined);
+    configService.get = jest.fn((key: string) =>
+      key === 'PUBLIC_MENU_BASE_URL' ? 'https://uat.kmrs.tech/' : '',
+    );
+    mockQrCodeToString.mockResolvedValue(
+      '<svg width="420" height="420"><path d="M0 0h1v1H0z"/></svg>',
+    );
+    qrCodeCreate.mockImplementation(({ data }: { data: QrCode }) =>
+      Promise.resolve(data),
+    );
+
+    await service.create(user, 'shop-1', { name: 'Front Door' }, 'en');
+
+    expect(mockQrCodeToString).toHaveBeenCalledWith(
+      'https://uat.kmrs.tech/sunrise-cafe',
+      {
+        type: 'svg',
+        errorCorrectionLevel: 'M',
+        margin: 1,
+        width: 420,
+      },
+    );
+  });
+
   it('refreshes stale QR records when listing by shop', async () => {
     shopsService.ensureAccess = jest.fn().mockResolvedValue({
       id: 'shop-1',

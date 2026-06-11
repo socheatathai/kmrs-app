@@ -129,14 +129,15 @@ export class QrCodesService {
   }
 
   private buildMenuUrl(shopSlug: string) {
-    const publicMenuBaseUrl =
-      this.configService.get<string>('publicMenuBaseUrl') ??
-      this.configService.get<string>('PUBLIC_MENU_BASE_URL') ??
-      'https://kmrs.tech';
-    const publicMenuPathPrefix =
-      this.configService.get<string>('publicMenuPathPrefix') ??
-      this.configService.get<string>('PUBLIC_MENU_PATH_PREFIX') ??
-      '';
+    const publicMenuBaseUrl = this.getConfigValue(
+      'publicMenuBaseUrl',
+      'PUBLIC_MENU_BASE_URL',
+      'https://kmrs.tech',
+    );
+    const publicMenuPathPrefix = this.getConfigValue(
+      'publicMenuPathPrefix',
+      'PUBLIC_MENU_PATH_PREFIX',
+    );
     const normalizedPrefix = publicMenuPathPrefix
       .trim()
       .replace(/^\/+|\/+$/g, '');
@@ -145,6 +146,17 @@ export class QrCodesService {
       : shopSlug;
 
     return `${publicMenuBaseUrl.replace(/\/+$/, '')}/${path}`;
+  }
+
+  private getConfigValue(
+    configKey: string,
+    envKey: string,
+    fallback = '',
+  ): string {
+    const configValue = this.configService.get<string>(configKey)?.trim();
+    const envValue = this.configService.get<string>(envKey)?.trim();
+
+    return configValue || envValue || fallback;
   }
 
   private async generateQrImage(
