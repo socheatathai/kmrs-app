@@ -13,6 +13,8 @@ out
 # Generated code
 generated
 apps/core-api/generated
+node-compile-cache
+**/node-compile-cache
 
 # Docs
 *.md

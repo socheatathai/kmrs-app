@@ -129,14 +129,15 @@ export class QrCodesService {
   }
 
   private buildMenuUrl(shopSlug: string) {
-    const publicMenuBaseUrl =
-      this.configService.get<string>('publicMenuBaseUrl') ??
-      this.configService.get<string>('PUBLIC_MENU_BASE_URL') ??
-      'https://kmrs.tech';
-    const publicMenuPathPrefix =
-      this.configService.get<string>('publicMenuPathPrefix') ??
-      this.configService.get<string>('PUBLIC_MENU_PATH_PREFIX') ??
-      '';
+    const publicMenuBaseUrl = this.getConfigValue(
+      'publicMenuBaseUrl',
+      'PUBLIC_MENU_BASE_URL',
+      'https://kmrs.tech',
+    );
+    const publicMenuPathPrefix = this.getConfigValue(
+      'publicMenuPathPrefix',
+      'PUBLIC_MENU_PATH_PREFIX',
+    );
     const normalizedPrefix = publicMenuPathPrefix
       .trim()
       .replace(/^\/+|\/+$/g, '');
@@ -145,6 +146,17 @@ export class QrCodesService {
       : shopSlug;
 
     return `${publicMenuBaseUrl.replace(/\/+$/, '')}/${path}`;
+  }
+
+  private getConfigValue(
+    configKey: string,
+    envKey: string,
+    fallback = '',
+  ): string {
+    const configValue = this.configService.get<string>(configKey)?.trim();
+    const envValue = this.configService.get<string>(envKey)?.trim();
+
+    return configValue || envValue || fallback;
   }
 
   private async generateQrImage(
@@ -203,14 +215,14 @@ export class QrCodesService {
     const safeShopName = this.escapeXml(shopName);
     const safeUrl = this.escapeXml(url);
     const svg = `
-<svg xmlns="http://www.w3.org/2000/svg" width="560" height="680" viewBox="0 0 560 680">
-  <rect width="560" height="680" rx="32" fill="#ffffff"/>
-  <text x="280" y="68" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" fill="#111827">${safeShopName}</text>
-  <text x="280" y="108" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="600" letter-spacing="2" fill="#047857">SCAN MENU</text>
-  <g transform="translate(70 136)">${qrBody}</g>
-  <text x="280" y="604" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#111827">Open digital menu</text>
-  <text x="280" y="638" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" fill="#4b5563">${safeUrl}</text>
-</svg>`.trim();
+    <svg xmlns="http://www.w3.org/2000/svg" width="560" height="680" viewBox="0 0 560 680">
+      <rect width="560" height="680" rx="32" fill="#ffffff"/>
+      <text x="280" y="68" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="700" fill="#111827">${safeShopName}</text>
+      <text x="280" y="108" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="17" font-weight="600" letter-spacing="2" fill="#047857">SCAN MENU</text>
+      <g transform="translate(70 136)">${qrBody}</g>
+      <text x="280" y="604" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" fill="#111827">Open digital menu</text>
+      <text x="280" y="638" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="16" fill="#4b5563">${safeUrl}</text>
+    </svg>`.trim();
 
     return `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
   }

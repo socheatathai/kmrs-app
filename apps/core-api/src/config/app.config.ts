@@ -1,3 +1,9 @@
+const envValue = (key: string, fallback = '') => {
+  const value = process.env[key]?.trim();
+
+  return value || fallback;
+};
+
 export default () => ({
   port: parseInt(process.env.PORT ?? '3000', 10),
   corsOrigins: process.env.CORS_ORIGINS ?? '',
@@ -14,14 +20,14 @@ export default () => ({
     process.env.AUTH_LOGIN_THROTTLE_LIMIT ?? '5',
     10,
   ),
-  publicMenuBaseUrl: process.env.PUBLIC_MENU_BASE_URL ?? 'https://kmrs.tech',
-  publicMenuPathPrefix: process.env.PUBLIC_MENU_PATH_PREFIX ?? '',
+  publicMenuBaseUrl: envValue('PUBLIC_MENU_BASE_URL', 'https://kmrs.tech'),
+  publicMenuPathPrefix: envValue('PUBLIC_MENU_PATH_PREFIX'),
   spaces: {
-    endpoint: process.env.DO_SPACES_ENDPOINT ?? '',
-    region: process.env.DO_SPACES_REGION ?? '',
-    bucket: process.env.DO_SPACES_BUCKET ?? '',
-    accessKeyId: process.env.DO_SPACES_KEY ?? '',
-    secretAccessKey: process.env.DO_SPACES_SECRET ?? '',
-    publicUrl: process.env.DO_SPACES_PUBLIC_URL ?? '',
+    endpoint: envValue('DO_SPACES_ENDPOINT'),
+    region: envValue('DO_SPACES_REGION'),
+    bucket: envValue('DO_SPACES_BUCKET'),
+    accessKeyId: envValue('DO_SPACES_KEY'),
+    secretAccessKey: envValue('DO_SPACES_SECRET'),
+    publicUrl: envValue('DO_SPACES_PUBLIC_URL'),
   },
 });

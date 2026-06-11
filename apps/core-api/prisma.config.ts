@@ -3,9 +3,13 @@ import { config as loadEnv } from 'dotenv';
 import { defineConfig } from 'prisma/config';
 
 const isProduction = process.env.NODE_ENV === 'production';
-const envFilePath = isProduction ? '.env.production' : '.env.local';
+const envFilePaths = isProduction
+  ? ['.env', '.env.production']
+  : ['.env', '.env.local'];
 
-loadEnv({ path: envFilePath });
+for (const envFilePath of envFilePaths) {
+  loadEnv({ path: envFilePath });
+}
 
 const fallbackDatabaseUrl =
   process.env.DATABASE_URL ??
