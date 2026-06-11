@@ -44,7 +44,19 @@ pnpm --filter core-api build
 
 pm2 restart "$PM2_NAME" --update-env
 
-curl --fail --silent --show-error "http://localhost:$API_PORT/docs" > /dev/null
+for attempt in {1..20}; do
+  if curl --fail --silent --show-error "http://localhost:$API_PORT/docs" > /dev/null; then
+    break
+  fi
+
+  if [ "$attempt" -eq 20 ]; then
+    echo "Health check failed: http://localhost:$API_PORT/docs"
+    pm2 logs "$PM2_NAME" --lines 40 --nostream
+    exit 1
+  fi
+
+  sleep 1
+done
 
 pm2 save
 
