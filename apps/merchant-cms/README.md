@@ -48,7 +48,7 @@ pnpm typecheck
 Recommended local run:
 
 ```sh
-pnpm dev -- --port 3000
+pnpm dev
 ```
 
 ## Project Structure

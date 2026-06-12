@@ -26,6 +26,14 @@ export class PublicController {
   }
 
   @Public()
+  @ApiOperation({ summary: 'Get a public menu QR code by shop slug' })
+  @ApiOkResponse({ description: 'Public menu QR code' })
+  @Get('menu/:slug/qrcode')
+  getQrCode(@Param('slug') slug: string) {
+    return this.publicService.getQrCode(slug);
+  }
+
+  @Public()
   @ApiOperation({ summary: 'Get public menu products by shop slug' })
   @ApiOkResponse({ description: 'Public menu products' })
   @Get('menu/:slug/products')

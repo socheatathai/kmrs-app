@@ -3,10 +3,12 @@ import { z } from "zod";
 import {
   categorySchema,
   productSchema,
+  qrCodeSchema,
   qrScanSchema,
   shopSchema,
   type Category,
   type Product,
+  type QrCode,
   type QrScanResponse,
   type Shop,
 } from "@/lib/types";
@@ -108,6 +110,10 @@ export function getPublicProduct(slug: string, productId: string) {
   return request(`/menu/${slug}/products/${productId}`, productSchema);
 }
 
+export function getPublicQrCode(slug: string) {
+  return request(`/menu/${slug}/qrcode`, qrCodeSchema);
+}
+
 export function trackQrScan(slug: string): Promise<QrScanResponse> {
   return request(`/menu/${slug}/qr-scan`, qrScanSchema, {
     method: "POST",
@@ -136,4 +142,4 @@ export function groupProductsByCategory(
   });
 }
 
-export type { Category, Product, Shop };
+export type { Category, Product, QrCode, Shop };

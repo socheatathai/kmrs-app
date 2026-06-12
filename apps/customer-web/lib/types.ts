@@ -48,7 +48,15 @@ export const qrScanSchema = z.object({
   scannedAt: z.string(),
 });
 
+export const qrCodeSchema = z.object({
+  id: z.string().nullable(),
+  name: z.string(),
+  url: z.string(),
+  imageUrl: z.string(),
+});
+
 export type Category = z.infer<typeof categorySchema>;
 export type Product = z.infer<typeof productSchema>;
 export type Shop = z.infer<typeof shopSchema>;
 export type QrScanResponse = z.infer<typeof qrScanSchema>;
+export type QrCode = z.infer<typeof qrCodeSchema>;
