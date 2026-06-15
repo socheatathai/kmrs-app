@@ -1,38 +1,41 @@
 <script setup lang="ts">
 definePageMeta({
-  middleware: 'guest'
-})
+  middleware: "guest",
+});
 
-const auth = useAuthStore()
+const auth = useAuthStore();
+const session = useSessionStore();
+const googleIdentity = useGoogleIdentity();
+const { isConfigured: isGoogleConfigured, requestAccessToken } = googleIdentity;
 
 const form = reactive({
-  name: '',
-  shopName: '',
-  email: '',
-  password: '',
-  confirmPassword: ''
-})
+  name: "",
+  shopName: "",
+  email: "",
+  password: "",
+  confirmPassword: "",
+});
 
-const localError = ref('')
-const showPassword = ref(false)
-const showConfirmPassword = ref(false)
+const localError = ref("");
+const showPassword = ref(false);
+const showConfirmPassword = ref(false);
 
 const submit = async () => {
-  localError.value = ''
+  localError.value = "";
 
   if (!form.email.trim()) {
-    localError.value = 'Please enter your email address.'
-    return
+    localError.value = "Please enter your email address.";
+    return;
   }
 
   if (!form.shopName.trim()) {
-    localError.value = 'Please enter your store name.'
-    return
+    localError.value = "Please enter your store name.";
+    return;
   }
 
   if (form.password !== form.confirmPassword) {
-    localError.value = 'Passwords do not match'
-    return
+    localError.value = "Passwords do not match";
+    return;
   }
 
   try {
@@ -40,14 +43,39 @@ const submit = async () => {
       name: form.name.trim(),
       shopName: form.shopName.trim(),
       email: form.email.trim(),
-      password: form.password
-    })
+      password: form.password,
+    });
 
-    return navigateTo('/subscription?choosePlan=1')
+    return navigateTo("/subscription?choosePlan=1");
   } catch {
-    localError.value = auth.error || 'Unable to create account. Please try again.'
+    localError.value =
+      auth.error || "Unable to create account. Please try again.";
   }
-}
+};
+
+const navigateAfterAuth = async () => {
+  const hasSubscription = await auth.checkActiveSubscription(true);
+
+  return navigateTo(
+    hasSubscription ? session.landingPath : "/subscription?choosePlan=1",
+  );
+};
+
+const submitGoogle = async () => {
+  localError.value = "";
+
+  try {
+    const accessToken = await requestAccessToken();
+    await auth.googleAuth({ accessToken });
+
+    return navigateAfterAuth();
+  } catch (error) {
+    localError.value =
+      auth.error ||
+      (error instanceof Error ? error.message : "") ||
+      "Unable to create account with Google. Please try again.";
+  }
+};
 </script>
 
 <template>
@@ -64,15 +92,33 @@ const submit = async () => {
       <form class="form" @submit.prevent="submit">
         <label class="field">
           Full name
-          <input v-model="form.name" class="input" type="text" autocomplete="name" required>
+          <input
+            v-model="form.name"
+            class="input"
+            type="text"
+            autocomplete="name"
+            required
+          />
         </label>
         <label class="field">
           Store name
-          <input v-model="form.shopName" class="input" type="text" autocomplete="organization" required>
+          <input
+            v-model="form.shopName"
+            class="input"
+            type="text"
+            autocomplete="organization"
+            required
+          />
         </label>
         <label class="field">
           Email
-          <input v-model="form.email" class="input" type="email" autocomplete="email" required>
+          <input
+            v-model="form.email"
+            class="input"
+            type="email"
+            autocomplete="email"
+            required
+          />
         </label>
         <label class="field">
           Password
@@ -84,9 +130,13 @@ const submit = async () => {
               autocomplete="new-password"
               minlength="6"
               required
+            />
+            <button
+              class="input-toggle"
+              type="button"
+              @click="showPassword = !showPassword"
             >
-            <button class="input-toggle" type="button" @click="showPassword = !showPassword">
-              {{ showPassword ? 'Hide' : 'Show' }}
+              {{ showPassword ? "Hide" : "Show" }}
             </button>
           </span>
         </label>
@@ -100,17 +150,38 @@ const submit = async () => {
               autocomplete="new-password"
               minlength="6"
               required
+            />
+            <button
+              class="input-toggle"
+              type="button"
+              @click="showConfirmPassword = !showConfirmPassword"
             >
-            <button class="input-toggle" type="button" @click="showConfirmPassword = !showConfirmPassword">
-              {{ showConfirmPassword ? 'Hide' : 'Show' }}
+              {{ showConfirmPassword ? "Hide" : "Show" }}
             </button>
           </span>
         </label>
-        <div v-if="localError || auth.error" class="error">{{ localError || auth.error }}</div>
+        <div v-if="localError || auth.error" class="error">
+          {{ localError || auth.error }}
+        </div>
         <button class="button primary" type="submit" :disabled="auth.pending">
-          {{ auth.pending ? 'Creating account...' : 'Create account' }}
+          {{ auth.pending ? "Creating account..." : "Create account" }}
         </button>
       </form>
+
+      <div v-if="isGoogleConfigured" class="oauth-block">
+        <div class="oauth-divider"><span>or</span></div>
+        <button
+          class="button ghost google-auth-button"
+          type="button"
+          :disabled="auth.pending"
+          @click="submitGoogle"
+        >
+          <span class="google-auth-logo" aria-hidden="true">
+            <span>G</span>
+          </span>
+          <span>Sign up with Google</span>
+        </button>
+      </div>
 
       <p class="auth-switch">
         Already have an account?

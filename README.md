@@ -102,10 +102,10 @@ Recommended local values:
 
 - `apps/core-api/.env.local`
   - set `PORT=3333`
-  - set `CORS_ORIGINS="http://localhost:3000,http://localhost:4200"`
+  - set `CORS_ORIGINS="http://localhost:3000,http://localhost:3001"`
 - `apps/customer-web/.env.local`
   - set `BASE_URL=http://localhost:3333`
-  - set `PUBLIC_MENU_BASE_URL=http://localhost:4200`
+  - set `PUBLIC_MENU_BASE_URL=http://localhost:3000`
 - `apps/merchant-cms/.env.local`
   - set `NUXT_PUBLIC_API_BASE="http://localhost:3333"`
 
@@ -123,8 +123,8 @@ Recommended separate commands:
 
 ```sh
 pnpm --filter core-api dev
-pnpm --filter merchant-cms dev -- --port 3000
-pnpm --filter customer-web dev -- --port 4200
+pnpm --filter merchant-cms dev
+pnpm --filter customer-web dev
 ```
 
 You can also run the full workspace:
@@ -135,8 +135,8 @@ pnpm dev
 
 Note:
 
-- `turbo run dev` does not assign ports for you.
-- `customer-web` and `merchant-cms` both default to port `3000`, so running them together requires explicit port overrides.
+- `merchant-cms` is configured to run on port `3001`.
+- `customer-web` uses the Next.js default port `3000`.
 
 ## Local URLs
 
@@ -144,8 +144,8 @@ With the recommended setup above:
 
 - `core-api`: `http://localhost:3333`
 - Swagger docs: `http://localhost:3333/docs`
-- `merchant-cms`: `http://localhost:3000`
-- `customer-web`: `http://localhost:4200`
+- `merchant-cms`: `http://localhost:3001`
+- `customer-web`: `http://localhost:3000`
 
 ## Workspace Commands
 

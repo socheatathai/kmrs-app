@@ -55,6 +55,17 @@ export class QrCodesController {
     return this.qrCodesService.findByShop(user, shopId);
   }
 
+  @ApiOperation({ summary: 'Count QR codes for a shop' })
+  @ApiOkResponse({ description: 'Shop QR code count' })
+  @Permissions(PERMISSIONS.qrCodesView)
+  @Get('count')
+  countByShop(
+    @CurrentUser() user: AuthUser,
+    @Param('shopId', new ParseUUIDPipe()) shopId: string,
+  ) {
+    return this.qrCodesService.countByShop(user, shopId);
+  }
+
   @ApiOperation({ summary: 'Update a QR code' })
   @ApiOkResponse({ description: 'Updated QR code' })
   @Permissions(PERMISSIONS.qrCodeUpdate)

@@ -7,6 +7,7 @@ const session = useSessionStore()
 const shop = useShopStore()
 const drawerOpen = ref(false)
 const currentYear = new Date().getFullYear()
+const avatarFailed = ref(false)
 
 const links = computed(() =>
   NAV_ITEMS.filter((item) =>
@@ -89,6 +90,10 @@ const handleLogout = async () => {
   await auth.logout()
   return navigateTo('/login')
 }
+
+watch(() => session.profileUrl, () => {
+  avatarFailed.value = false
+})
 </script>
 
 <template>
@@ -117,16 +122,16 @@ const handleLogout = async () => {
             <span class="nav-chevron" aria-hidden="true" />
           </summary>
           <div class="nav-section-items">
-            <template v-for="item in group.items" :key="item.to">
-              <NuxtLink
-                :to="item.to"
-                class="nav-link"
-                :class="{ active: isActive(item.to) }"
-              >
-                <span class="nav-icon" :class="item.icon" aria-hidden="true" />
-                <span>{{ item.label }}</span>
-              </NuxtLink>
-            </template>
+            <NuxtLink
+              v-for="item in group.items"
+              :key="item.to"
+              :to="item.to"
+              class="nav-link"
+              :class="{ active: isActive(item.to) }"
+            >
+              <span class="nav-icon" :class="item.icon" aria-hidden="true" />
+              <span>{{ item.label }}</span>
+            </NuxtLink>
           </div>
         </details>
       </nav>
@@ -134,7 +139,13 @@ const handleLogout = async () => {
       <div class="user-box">
         <div class="user-chip">
           <div class="avatar">
-            <img v-if="session.profileUrl" :src="session.profileUrl" :alt="session.displayName">
+            <img
+              v-if="session.profileUrl && !avatarFailed"
+              :src="session.profileUrl"
+              :alt="session.displayName"
+              referrerpolicy="no-referrer"
+              @error="avatarFailed = true"
+            >
             <span v-else>{{ session.initials }}</span>
           </div>
           <div>
@@ -220,7 +231,13 @@ const handleLogout = async () => {
           <div class="user-box">
             <div class="user-chip">
               <div class="avatar">
-                <img v-if="session.profileUrl" :src="session.profileUrl" :alt="session.displayName">
+                <img
+                  v-if="session.profileUrl && !avatarFailed"
+                  :src="session.profileUrl"
+                  :alt="session.displayName"
+                  referrerpolicy="no-referrer"
+                  @error="avatarFailed = true"
+                >
                 <span v-else>{{ session.initials }}</span>
               </div>
               <div>

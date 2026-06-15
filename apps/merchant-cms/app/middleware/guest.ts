@@ -4,6 +4,12 @@ export default defineNuxtRouteMiddleware(async () => {
   await auth.initialize()
 
   if (auth.isAuthenticated) {
+    const hasSubscription = await auth.checkActiveSubscription()
+
+    if (!hasSubscription) {
+      return navigateTo('/subscription?choosePlan=1')
+    }
+
     return navigateTo(session.landingPath)
   }
 })

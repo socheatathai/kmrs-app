@@ -1,10 +1,10 @@
-export type UserRole = 'SUPER_ADMIN' | 'MERCHANT_OWNER' | 'STAFF';
+export type UserRole = "SUPER_ADMIN" | "MERCHANT_OWNER" | "STAFF";
 
-export type ShopAccessRole = 'OWNER' | 'STAFF';
+export type ShopAccessRole = "OWNER" | "STAFF";
 
 export type Permission = string;
 
-export type DashboardMode = 'admin' | 'merchant';
+export type DashboardMode = "admin" | "merchant";
 
 export interface ApiMeta {
   requestId?: string;
@@ -29,6 +29,14 @@ export interface ApiErrorResponse {
   success: false;
   error: ApiErrorPayload;
   meta: ApiMeta;
+}
+
+export interface PaginatedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  pageCount: number;
 }
 
 export interface AccessibleShop {
@@ -77,6 +85,12 @@ export interface RegisterRequest {
   shopName: string;
 }
 
+export interface GoogleAuthRequest {
+  idToken?: string;
+  accessToken?: string;
+  shopName?: string;
+}
+
 export interface RefreshTokenRequest {
   refreshToken: string;
 }
@@ -103,7 +117,7 @@ export interface SubscriptionSummary {
   id: string;
   userId: string;
   planId: string;
-  status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'PENDING_PAYMENT' | 'SUSPENDED';
+  status: "ACTIVE" | "EXPIRED" | "CANCELLED" | "PENDING_PAYMENT" | "SUSPENDED";
   startedAt: string;
   expiredAt: string | null;
   createdAt: string;
@@ -152,6 +166,16 @@ export interface ProductSummary {
   category?: CategorySummary;
 }
 
+export interface ProductListQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  categoryId?: string;
+  isAvailable?: boolean;
+  sortBy?: "name" | "price" | "sortOrder" | "createdAt" | "updatedAt";
+  sortDirection?: "asc" | "desc";
+}
+
 export interface QrCodeSummary {
   id: string;
   shopId: string;
@@ -161,6 +185,10 @@ export interface QrCodeSummary {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CountSummary {
+  count: number;
 }
 
 export interface ShopDetail extends ShopSummary {
@@ -180,7 +208,10 @@ export interface CreateShopRequest {
 }
 
 export type UpdateShopRequest = Partial<
-  Omit<CreateShopRequest, 'description' | 'logoUrl' | 'coverUrl' | 'phone' | 'address'>
+  Omit<
+    CreateShopRequest,
+    "description" | "logoUrl" | "coverUrl" | "phone" | "address"
+  >
 > & {
   description?: string | null;
   logoUrl?: string | null;
@@ -188,7 +219,7 @@ export type UpdateShopRequest = Partial<
   phone?: string | null;
   address?: string | null;
   isActive?: boolean;
-}
+};
 
 export interface CreateCategoryRequest {
   name: string;
@@ -213,12 +244,12 @@ export interface CreateProductRequest {
 }
 
 export type UpdateProductRequest = Partial<
-  Omit<CreateProductRequest, 'description' | 'imageUrl' | 'imageKey'>
+  Omit<CreateProductRequest, "description" | "imageUrl" | "imageKey">
 > & {
   description?: string | null;
   imageUrl?: string | null;
   imageKey?: string | null;
-}
+};
 
 export interface UploadImageResult {
   url: string;
