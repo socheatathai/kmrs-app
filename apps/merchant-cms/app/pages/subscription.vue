@@ -47,6 +47,12 @@ watch(plans, (items) => {
   }
 }, { immediate: true })
 
+watch(() => route.query.choosePlan, (value) => {
+  if (value === '1') {
+    showPlanChooser.value = true
+  }
+})
+
 const hasCurrentSubscription = computed(() => Boolean(current.value && !currentError.value))
 const onboardingPlans = computed(() => plans.value?.slice(0, 3) ?? [])
 const isSelectedCurrentPlan = (plan: PlanSummary) => current.value?.planId === plan.id

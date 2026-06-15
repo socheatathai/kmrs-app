@@ -11,6 +11,7 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import type { AuthUser } from '../../common/types/auth-user.type';
 import { AuthService } from './auth.service';
+import { GoogleAuthDto } from './dto/google-auth.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -49,6 +50,20 @@ export class AuthController {
   @Post('login')
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Public()
+  @Throttle({
+    default: {
+      limit: AUTH_LOGIN_THROTTLE_LIMIT,
+      ttl: AUTH_LOGIN_THROTTLE_TTL_MS,
+    },
+  })
+  @ApiOperation({ summary: 'Login or register with Google OAuth' })
+  @ApiOkResponse({ description: 'Authenticated merchant session' })
+  @Post('google')
+  google(@Body() dto: GoogleAuthDto) {
+    return this.authService.googleAuth(dto);
   }
 
   @ApiBearerAuth()

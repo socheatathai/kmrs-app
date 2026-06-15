@@ -1,29 +1,27 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  compatibilityDate: '2025-07-15',
+  compatibilityDate: "2025-07-15",
 
   devServer: {
-    port: 3001
+    port: 3001,
   },
 
   devtools: {
-    enabled: true
+    enabled: true,
   },
 
   runtimeConfig: {
     public: {
-      apiBase: process.env.NUXT_PUBLIC_API_BASE || 'https://api.kmrs.tech'
-    }
+      apiBase: process.env.NUXT_PUBLIC_API_BASE || "https://api.kmrs.tech",
+      googleClientId: process.env.NUXT_PUBLIC_GOOGLE_CLIENT_ID || "",
+    },
   },
 
-  modules: [
-    '@nuxt/ui',
-    '@pinia/nuxt'
-  ],
+  modules: ["@nuxt/ui", "@pinia/nuxt"],
 
-  css: ['~/assets/css/main.css'],
+  css: ["~/assets/css/main.css"],
 
   future: {
-    compatibilityVersion: 4
-  }
-})
+    compatibilityVersion: 4,
+  },
+});

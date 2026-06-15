@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -8,15 +9,17 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { User, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 
-import { DatabaseService } from '../../common/services/database.service';
 import { AccessControlService } from '../../common/services/access-control.service';
 import {
   LEVEL_DEFAULT_PERMISSIONS,
   LEVELS,
 } from '../../common/auth/level-permissions';
 import { I18nService } from '../../common/i18n/i18n.service';
+import { DatabaseService } from '../../common/services/database.service';
 import { PrismaService } from '../../database/prisma/prisma.service';
+import { GoogleAuthDto } from './dto/google-auth.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 
@@ -29,6 +32,16 @@ const normalizeSlug = (value: string) => {
     .slice(0, 50);
 
   return slug || 'shop';
+};
+
+type GoogleTokenInfo = {
+  aud?: string;
+  email?: string;
+  email_verified?: 'true' | 'false' | boolean;
+  name?: string;
+  given_name?: string;
+  family_name?: string;
+  picture?: string;
 };
 
 @Injectable()
@@ -112,6 +125,84 @@ export class AuthService {
     if (!user.isActive) {
       throw new UnauthorizedException(this.i18n.t('auth.accountInactive'));
     }
+
+    return this.buildAuthResponse(user);
+  }
+
+  async googleAuth(dto: GoogleAuthDto) {
+    const profile = await this.verifyGoogleIdToken(dto.idToken);
+    const email = profile.email?.trim().toLowerCase();
+
+    if (!email) {
+      throw new UnauthorizedException(this.i18n.t('auth.googleEmailMissing'));
+    }
+
+    const existingUser = await this.database.execute(
+      'auth.google.findUser',
+      () =>
+        this.prisma.user.findUnique({
+          where: { email },
+        }),
+    );
+
+    if (existingUser) {
+      if (!existingUser.isActive) {
+        throw new UnauthorizedException(this.i18n.t('auth.accountInactive'));
+      }
+
+      if (profile.picture && existingUser.profileUrl !== profile.picture) {
+        const updatedUser = await this.database.execute(
+          'auth.google.updateProfile',
+          () =>
+            this.prisma.user.update({
+              where: { id: existingUser.id },
+              data: { profileUrl: profile.picture },
+            }),
+        );
+
+        return this.buildAuthResponse(updatedUser);
+      }
+
+      return this.buildAuthResponse(existingUser);
+    }
+
+    const name =
+      profile.name?.trim() ||
+      [profile.given_name, profile.family_name]
+        .filter(Boolean)
+        .join(' ')
+        .trim() ||
+      email.split('@')[0] ||
+      'Merchant';
+    const shopName = dto.shopName?.trim() || `${name} Store`;
+    const shopSlug = await this.createUniqueShopSlug(normalizeSlug(shopName));
+    const password = await bcrypt.hash(randomBytes(32).toString('hex'), 10);
+
+    const user = await this.database.execute('auth.google.createUser', () =>
+      this.prisma.$transaction(async (transaction) => {
+        const createdUser = await transaction.user.create({
+          data: {
+            name,
+            email,
+            password,
+            profileUrl: profile.picture,
+            role: UserRole.MERCHANT_OWNER,
+            level: LEVELS.ADMIN_MIDDLE,
+            permissions: [...LEVEL_DEFAULT_PERMISSIONS[LEVELS.ADMIN_MIDDLE]],
+          },
+        });
+
+        await transaction.shop.create({
+          data: {
+            ownerId: createdUser.id,
+            name: shopName,
+            slug: shopSlug,
+          },
+        });
+
+        return createdUser;
+      }),
+    );
 
     return this.buildAuthResponse(user);
   }
@@ -346,5 +437,63 @@ export class AuthService {
     }
 
     return `${baseSlug.slice(0, 37)}-${Date.now().toString(36)}`;
+  }
+
+  private async verifyGoogleIdToken(idToken: string) {
+    const clientId = this.configService.get<string>('GOOGLE_OAUTH_CLIENT_ID');
+
+    if (!clientId) {
+      throw new Error('GOOGLE_OAUTH_CLIENT_ID is not set');
+    }
+
+    const claims = this.decodeGoogleIdTokenClaims(idToken);
+    const response = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
+    );
+
+    if (!response.ok) {
+      throw new UnauthorizedException(this.i18n.t('auth.googleInvalidToken'));
+    }
+
+    const tokenInfo = (await response.json()) as GoogleTokenInfo;
+    const profile = {
+      ...claims,
+      ...tokenInfo,
+      name: tokenInfo.name || claims.name,
+      given_name: tokenInfo.given_name || claims.given_name,
+      family_name: tokenInfo.family_name || claims.family_name,
+      picture: tokenInfo.picture || claims.picture,
+    };
+
+    if (profile.aud !== clientId) {
+      throw new UnauthorizedException(this.i18n.t('auth.googleInvalidToken'));
+    }
+
+    if (profile.email_verified !== true && profile.email_verified !== 'true') {
+      throw new BadRequestException(this.i18n.t('auth.googleEmailUnverified'));
+    }
+
+    return profile;
+  }
+
+  private decodeGoogleIdTokenClaims(idToken: string): GoogleTokenInfo {
+    const [, payload] = idToken.split('.');
+
+    if (!payload) {
+      return {};
+    }
+
+    try {
+      const normalizedPayload = payload
+        .replace(/-/g, '+')
+        .replace(/_/g, '/')
+        .padEnd(Math.ceil(payload.length / 4) * 4, '=');
+
+      return JSON.parse(
+        Buffer.from(normalizedPayload, 'base64').toString('utf8'),
+      ) as GoogleTokenInfo;
+    } catch {
+      return {};
+    }
   }
 }

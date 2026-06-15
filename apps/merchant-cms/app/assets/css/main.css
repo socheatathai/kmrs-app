@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss" theme(static);
 @import "@nuxt/ui";
 
@@ -560,6 +560,35 @@ textarea {
   text-align: center;
 }
 
+.oauth-block {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.oauth-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.oauth-divider::before,
+.oauth-divider::after {
+  height: 1px;
+  flex: 1 1 auto;
+  background: var(--line-soft);
+  content: "";
+}
+
+.google-button {
+  min-height: 44px;
+  display: grid;
+  justify-items: center;
+}
+
 .input,
 .select {
   width: 100%;
@@ -1043,7 +1072,9 @@ textarea {
   color: var(--muted);
   font-weight: 800;
   padding: 0 0.75rem;
-  transition: background 0.14s ease, color 0.14s ease;
+  transition:
+    background 0.14s ease,
+    color 0.14s ease;
 }
 
 .nav-submenu {

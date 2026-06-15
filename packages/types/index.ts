@@ -1,10 +1,10 @@
-export type UserRole = 'SUPER_ADMIN' | 'MERCHANT_OWNER' | 'STAFF';
+export type UserRole = "SUPER_ADMIN" | "MERCHANT_OWNER" | "STAFF";
 
-export type ShopAccessRole = 'OWNER' | 'STAFF';
+export type ShopAccessRole = "OWNER" | "STAFF";
 
 export type Permission = string;
 
-export type DashboardMode = 'admin' | 'merchant';
+export type DashboardMode = "admin" | "merchant";
 
 export interface ApiMeta {
   requestId?: string;
@@ -77,6 +77,11 @@ export interface RegisterRequest {
   shopName: string;
 }
 
+export interface GoogleAuthRequest {
+  idToken: string;
+  shopName?: string;
+}
+
 export interface RefreshTokenRequest {
   refreshToken: string;
 }
@@ -103,7 +108,7 @@ export interface SubscriptionSummary {
   id: string;
   userId: string;
   planId: string;
-  status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED' | 'PENDING_PAYMENT' | 'SUSPENDED';
+  status: "ACTIVE" | "EXPIRED" | "CANCELLED" | "PENDING_PAYMENT" | "SUSPENDED";
   startedAt: string;
   expiredAt: string | null;
   createdAt: string;
@@ -180,7 +185,10 @@ export interface CreateShopRequest {
 }
 
 export type UpdateShopRequest = Partial<
-  Omit<CreateShopRequest, 'description' | 'logoUrl' | 'coverUrl' | 'phone' | 'address'>
+  Omit<
+    CreateShopRequest,
+    "description" | "logoUrl" | "coverUrl" | "phone" | "address"
+  >
 > & {
   description?: string | null;
   logoUrl?: string | null;
@@ -188,7 +196,7 @@ export type UpdateShopRequest = Partial<
   phone?: string | null;
   address?: string | null;
   isActive?: boolean;
-}
+};
 
 export interface CreateCategoryRequest {
   name: string;
@@ -213,12 +221,12 @@ export interface CreateProductRequest {
 }
 
 export type UpdateProductRequest = Partial<
-  Omit<CreateProductRequest, 'description' | 'imageUrl' | 'imageKey'>
+  Omit<CreateProductRequest, "description" | "imageUrl" | "imageKey">
 > & {
   description?: string | null;
   imageUrl?: string | null;
   imageKey?: string | null;
-}
+};
 
 export interface UploadImageResult {
   url: string;
