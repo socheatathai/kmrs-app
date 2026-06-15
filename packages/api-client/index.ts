@@ -6,6 +6,7 @@ import type {
   AuthUserProfile,
   CancelSubscriptionRequest,
   CategorySummary,
+  CountSummary,
   CreateManagedUserRequest,
   CreateCategoryRequest,
   CreateProductRequest,
@@ -14,7 +15,9 @@ import type {
   CreateSubscriptionRequest,
   GoogleAuthRequest,
   LoginRequest,
+  PaginatedResult,
   PlanSummary,
+  ProductListQuery,
   ProductSummary,
   QrCodeSummary,
   RefreshTokenRequest,
@@ -298,6 +301,47 @@ export class ApiClient {
     return this.get<ProductSummary[]>(`/shops/${shopId}/products`);
   }
 
+  getProductsPage(shopId: string, params: ProductListQuery = {}) {
+    const search = new URLSearchParams();
+
+    if (params.page !== undefined) {
+      search.set("page", String(params.page));
+    }
+
+    if (params.limit !== undefined) {
+      search.set("limit", String(params.limit));
+    }
+
+    if (params.search) {
+      search.set("search", params.search);
+    }
+
+    if (params.categoryId) {
+      search.set("categoryId", params.categoryId);
+    }
+
+    if (params.isAvailable !== undefined) {
+      search.set("isAvailable", String(params.isAvailable));
+    }
+
+    if (params.sortBy) {
+      search.set("sortBy", params.sortBy);
+    }
+
+    if (params.sortDirection) {
+      search.set("sortDirection", params.sortDirection);
+    }
+
+    const query = search.toString();
+    return this.get<PaginatedResult<ProductSummary>>(
+      `/shops/${shopId}/products${query ? `?${query}` : ""}`,
+    );
+  }
+
+  getProduct(shopId: string, productId: string) {
+    return this.get<ProductSummary>(`/shops/${shopId}/products/${productId}`);
+  }
+
   createProduct(shopId: string, payload: CreateProductRequest) {
     return this.post<ProductSummary>(`/shops/${shopId}/products`, payload);
   }
@@ -331,6 +375,10 @@ export class ApiClient {
 
   getQrCodes(shopId: string) {
     return this.get<QrCodeSummary[]>(`/shops/${shopId}/qrcodes`);
+  }
+
+  getQrCodeCount(shopId: string) {
+    return this.get<CountSummary>(`/shops/${shopId}/qrcodes/count`);
   }
 
   createQrCode(shopId: string, payload: CreateQrCodeRequest) {

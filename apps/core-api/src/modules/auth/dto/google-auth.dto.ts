@@ -2,11 +2,19 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsJWT, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class GoogleAuthDto {
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Google Identity Services credential ID token.',
   })
+  @IsOptional()
   @IsJWT()
-  idToken!: string;
+  idToken?: string;
+
+  @ApiPropertyOptional({
+    description: 'Google OAuth access token with openid email profile scopes.',
+  })
+  @IsOptional()
+  @IsString()
+  accessToken?: string;
 
   @ApiPropertyOptional({
     example: 'Sunrise Cafe',

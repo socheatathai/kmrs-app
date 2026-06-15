@@ -2,6 +2,12 @@ type GoogleCredentialResponse = {
   credential?: string;
 };
 
+type GoogleTokenResponse = {
+  access_token?: string;
+  error?: string;
+  error_description?: string;
+};
+
 type GoogleButtonConfig = {
   theme?: "outline" | "filled_blue" | "filled_black";
   size?: "large" | "medium" | "small";
@@ -17,6 +23,16 @@ type GoogleAccounts = {
       callback: (response: GoogleCredentialResponse) => void;
     }) => void;
     renderButton: (element: HTMLElement, config: GoogleButtonConfig) => void;
+  };
+  oauth2: {
+    initTokenClient: (config: {
+      client_id: string;
+      scope: string;
+      prompt?: string;
+      callback: (response: GoogleTokenResponse) => void;
+    }) => {
+      requestAccessToken: () => void;
+    };
   };
 };
 
@@ -104,8 +120,46 @@ export const useGoogleIdentity = () => {
     });
   };
 
+  const requestAccessToken = async () => {
+    if (!import.meta.client || !isConfigured.value) {
+      throw new Error("Google sign-in is not configured");
+    }
+
+    await loadGoogleScript();
+
+    return new Promise<string>((resolve, reject) => {
+      const tokenClient = window.google?.accounts?.oauth2.initTokenClient({
+        client_id: clientId.value,
+        scope: "openid email profile",
+        prompt: "select_account",
+        callback: (response) => {
+          if (response.access_token) {
+            resolve(response.access_token);
+            return;
+          }
+
+          reject(
+            new Error(
+              response.error_description ||
+                response.error ||
+                "Google sign-in was cancelled",
+            ),
+          );
+        },
+      });
+
+      if (!tokenClient) {
+        reject(new Error("Unable to start Google sign-in"));
+        return;
+      }
+
+      tokenClient.requestAccessToken();
+    });
+  };
+
   return {
     isConfigured,
     renderButton,
+    requestAccessToken,
   };
 };

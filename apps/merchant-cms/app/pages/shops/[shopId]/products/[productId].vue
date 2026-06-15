@@ -1,134 +1,137 @@
 <script setup lang="ts">
-import type { UpdateProductRequest, UploadImageResult } from '@kmrs-app/types'
+import type { UpdateProductRequest, UploadImageResult } from "@kmrs-app/types";
 
 definePageMeta({
-  layout: 'dashboard',
-  middleware: 'auth'
-})
+  layout: "dashboard",
+  middleware: "auth",
+});
 
-const route = useRoute()
-const client = useApiClient()
-const toast = useToast()
-const shopStore = useShopStore()
+const route = useRoute();
+const client = useApiClient();
+const toast = useToast();
+const shopStore = useShopStore();
 const shopId = computed(() => {
-  const value = route.params.shopId
-  return Array.isArray(value) ? value[0] ?? '' : String(value ?? '')
-})
+  const value = route.params.shopId;
+  return Array.isArray(value) ? (value[0] ?? "") : String(value ?? "");
+});
 const productId = computed(() => {
-  const value = route.params.productId
-  return Array.isArray(value) ? value[0] ?? '' : String(value ?? '')
-})
-const canAccessShop = computed(() => shopStore.canAccess(shopId.value))
+  const value = route.params.productId;
+  return Array.isArray(value) ? (value[0] ?? "") : String(value ?? "");
+});
+const canAccessShop = computed(() => shopStore.canAccess(shopId.value));
 
 if (!canAccessShop.value) {
-  await navigateTo('/shops')
+  await navigateTo("/shops");
 }
 
 const { data, pending, error, refresh } = await useAsyncData(
   () => `product-edit-${shopId.value}-${productId.value}`,
   async () => {
     if (!canAccessShop.value) {
-      return null
+      return null;
     }
 
-    const [categories, products] = await Promise.all([
+    const [categories, product] = await Promise.all([
       client.getCategories(shopId.value),
-      client.getProducts(shopId.value)
-    ])
-    const product = products.find((item) => item.id === productId.value) ?? null
+      client.getProduct(shopId.value, productId.value),
+    ]);
 
-    return { categories, product }
-  }
-)
+    return { categories, product };
+  },
+);
 
-const categories = computed(() => data.value?.categories ?? [])
-const product = computed(() => data.value?.product ?? null)
+const categories = computed(() => data.value?.categories ?? []);
+const product = computed(() => data.value?.product ?? null);
 const form = reactive({
-  categoryId: '',
-  name: '',
-  description: '',
-  price: '',
+  categoryId: "",
+  name: "",
+  description: "",
+  price: "",
   sortOrder: 0,
-  imageUrl: '',
-  imageKey: '',
-  isAvailable: true
-})
-const selectedFile = ref<File | null>(null)
-const imagePreview = ref('')
-const uploadResult = ref<UploadImageResult | null>(null)
-const isSaving = ref(false)
-const formError = ref('')
+  imageUrl: "",
+  imageKey: "",
+  isAvailable: true,
+});
+const selectedFile = ref<File | null>(null);
+const imagePreview = ref("");
+const uploadResult = ref<UploadImageResult | null>(null);
+const isSaving = ref(false);
+const formError = ref("");
 
-watch(product, (value) => {
-  if (!value) {
-    return
-  }
+watch(
+  product,
+  (value) => {
+    if (!value) {
+      return;
+    }
 
-  form.categoryId = value.categoryId
-  form.name = value.name
-  form.description = value.description ?? ''
-  form.price = value.price
-  form.sortOrder = value.sortOrder
-  form.imageUrl = value.imageUrl ?? ''
-  form.imageKey = value.imageKey ?? ''
-  form.isAvailable = value.isAvailable
-  imagePreview.value = value.imageUrl ?? ''
-}, { immediate: true })
+    form.categoryId = value.categoryId;
+    form.name = value.name;
+    form.description = value.description ?? "";
+    form.price = value.price;
+    form.sortOrder = value.sortOrder;
+    form.imageUrl = value.imageUrl ?? "";
+    form.imageKey = value.imageKey ?? "";
+    form.isAvailable = value.isAvailable;
+    imagePreview.value = value.imageUrl ?? "";
+  },
+  { immediate: true },
+);
 
 const normalizePrice = (value: string) => {
-  const normalized = value.trim()
+  const normalized = value.trim();
 
   if (!/^\d+(\.\d{1,2})?$/.test(normalized)) {
-    return ''
+    return "";
   }
 
-  return Number(normalized).toFixed(2)
-}
+  return Number(normalized).toFixed(2);
+};
 
 const nullableText = (value: string) => {
-  const trimmed = value.trim()
-  return trimmed ? trimmed : null
-}
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+};
 
 const handleFileChange = (event: Event) => {
-  const input = event.target as HTMLInputElement
-  const file = input.files?.[0] ?? null
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0] ?? null;
 
-  selectedFile.value = file
-  uploadResult.value = null
-  imagePreview.value = file ? URL.createObjectURL(file) : form.imageUrl
-}
+  selectedFile.value = file;
+  uploadResult.value = null;
+  imagePreview.value = file ? URL.createObjectURL(file) : form.imageUrl;
+};
 
 const clearImage = () => {
-  selectedFile.value = null
-  uploadResult.value = null
-  imagePreview.value = ''
-  form.imageUrl = ''
-  form.imageKey = ''
-}
+  selectedFile.value = null;
+  uploadResult.value = null;
+  imagePreview.value = "";
+  form.imageUrl = "";
+  form.imageKey = "";
+};
 
 const updateProduct = async () => {
   if (!form.categoryId) {
-    formError.value = 'Select a category first.'
-    return
+    formError.value = "Select a category first.";
+    return;
   }
 
-  const price = normalizePrice(form.price)
+  const price = normalizePrice(form.price);
 
   if (!price) {
-    formError.value = 'Price must be a valid amount, for example 10.00.'
-    return
+    formError.value = "Price must be a valid amount, for example 10.00.";
+    return;
   }
 
-  formError.value = ''
-  isSaving.value = true
+  formError.value = "";
+  isSaving.value = true;
 
   try {
     if (selectedFile.value && !uploadResult.value) {
-      uploadResult.value = await client.uploadImage(selectedFile.value, 'prod')
-      form.imageUrl = uploadResult.value.url
-      form.imageKey = uploadResult.value.key
-      imagePreview.value = uploadResult.value.url
+      uploadResult.value = await client.uploadImage(selectedFile.value, "prod");
+      form.imageUrl = uploadResult.value.url;
+      form.imageKey = uploadResult.value.key;
+      imagePreview.value = uploadResult.value.url;
     }
 
     const payload: UpdateProductRequest = {
@@ -139,23 +142,24 @@ const updateProduct = async () => {
       isAvailable: form.isAvailable,
       description: nullableText(form.description),
       imageUrl: nullableText(form.imageUrl),
-      imageKey: nullableText(form.imageKey)
-    }
+      imageKey: nullableText(form.imageKey),
+    };
 
-    await client.updateProduct(shopId.value, productId.value, payload)
-    clearNuxtData(`catalog-${shopId.value}`)
-    selectedFile.value = null
+    await client.updateProduct(shopId.value, productId.value, payload);
+    clearNuxtData(`catalog-${shopId.value}`);
+    selectedFile.value = null;
     toast.add({
-      title: 'Product updated',
-      description: `${payload.name} was saved.`
-    })
-    await navigateTo(`/shops/${shopId.value}/catalog`)
+      title: "Product updated",
+      description: `${payload.name} was saved.`,
+    });
+    await navigateTo(`/shops/${shopId.value}/catalog`);
   } catch (error) {
-    formError.value = error instanceof Error ? error.message : 'Unable to update product.'
+    formError.value =
+      error instanceof Error ? error.message : "Unable to update product.";
   } finally {
-    isSaving.value = false
+    isSaving.value = false;
   }
-}
+};
 </script>
 
 <template>
@@ -164,9 +168,13 @@ const updateProduct = async () => {
       <div class="panel-head">
         <div>
           <h2>Edit Product</h2>
-          <p class="muted">Update catalog item details, image, and availability.</p>
+          <p class="muted">
+            Update catalog item details, image, and availability.
+          </p>
         </div>
-        <NuxtLink class="button ghost" :to="`/shops/${shopId}/catalog`">Back to catalog</NuxtLink>
+        <NuxtLink class="button ghost" :to="`/shops/${shopId}/catalog`"
+          >Back to catalog</NuxtLink
+        >
       </div>
 
       <div v-if="pending" class="empty">Loading product...</div>
@@ -177,15 +185,31 @@ const updateProduct = async () => {
         <div class="form-grid">
           <label class="field">
             Category
-            <select v-model="form.categoryId" class="select" required :disabled="isSaving">
-              <option v-for="category in categories" :key="category.id" :value="category.id">
+            <select
+              v-model="form.categoryId"
+              class="select"
+              required
+              :disabled="isSaving"
+            >
+              <option
+                v-for="category in categories"
+                :key="category.id"
+                :value="category.id"
+              >
                 {{ category.name }}
               </option>
             </select>
           </label>
           <label class="field">
             Name
-            <input v-model="form.name" class="input" type="text" maxlength="120" required :disabled="isSaving">
+            <input
+              v-model="form.name"
+              class="input"
+              type="text"
+              maxlength="120"
+              required
+              :disabled="isSaving"
+            />
           </label>
           <label class="field">
             Price
@@ -198,30 +222,64 @@ const updateProduct = async () => {
               placeholder="10.00"
               required
               :disabled="isSaving"
-            >
+            />
           </label>
           <label class="field">
             Sort order
-            <input v-model.number="form.sortOrder" class="input" type="number" min="0" max="10000" :disabled="isSaving">
+            <input
+              v-model.number="form.sortOrder"
+              class="input"
+              type="number"
+              min="0"
+              max="10000"
+              :disabled="isSaving"
+            />
           </label>
         </div>
 
         <label class="field">
           Image URL
-          <input v-model="form.imageUrl" class="input" type="url" :disabled="isSaving" @input="imagePreview = form.imageUrl">
+          <input
+            v-model="form.imageUrl"
+            class="input"
+            type="url"
+            :disabled="isSaving"
+            @input="imagePreview = form.imageUrl"
+          />
         </label>
         <label class="field">
           Upload image
-          <input class="input file-input" type="file" accept="image/jpeg,image/png,image/webp" :disabled="isSaving" @change="handleFileChange">
+          <input
+            class="input file-input"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            :disabled="isSaving"
+            @change="handleFileChange"
+          />
         </label>
-        <img v-if="imagePreview" :src="imagePreview" alt="Product preview" class="upload-preview">
+        <img
+          v-if="imagePreview"
+          :src="imagePreview"
+          alt="Product preview"
+          class="upload-preview"
+        />
 
         <label class="field">
           Description
-          <textarea v-model="form.description" class="input textarea" maxlength="1000" rows="3" :disabled="isSaving" />
+          <textarea
+            v-model="form.description"
+            class="input textarea"
+            maxlength="1000"
+            rows="3"
+            :disabled="isSaving"
+          />
         </label>
         <label class="check">
-          <input v-model="form.isAvailable" type="checkbox" :disabled="isSaving">
+          <input
+            v-model="form.isAvailable"
+            type="checkbox"
+            :disabled="isSaving"
+          />
           Available
         </label>
 
@@ -229,10 +287,19 @@ const updateProduct = async () => {
 
         <div class="form-actions">
           <button class="button primary" type="submit" :disabled="isSaving">
-            {{ isSaving ? 'Saving...' : 'Save product' }}
+            {{ isSaving ? "Saving..." : "Save product" }}
           </button>
-          <button class="button ghost" type="button" :disabled="isSaving" @click="clearImage">Clear image</button>
-          <NuxtLink class="button ghost" :to="`/shops/${shopId}/catalog`">Cancel</NuxtLink>
+          <button
+            class="button ghost"
+            type="button"
+            :disabled="isSaving"
+            @click="clearImage"
+          >
+            Clear image
+          </button>
+          <NuxtLink class="button ghost" :to="`/shops/${shopId}/catalog`"
+            >Cancel</NuxtLink
+          >
         </div>
       </form>
     </section>

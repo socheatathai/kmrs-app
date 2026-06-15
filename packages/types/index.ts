@@ -31,6 +31,14 @@ export interface ApiErrorResponse {
   meta: ApiMeta;
 }
 
+export interface PaginatedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  pageCount: number;
+}
+
 export interface AccessibleShop {
   shopId: string;
   shopName: string;
@@ -78,7 +86,8 @@ export interface RegisterRequest {
 }
 
 export interface GoogleAuthRequest {
-  idToken: string;
+  idToken?: string;
+  accessToken?: string;
   shopName?: string;
 }
 
@@ -157,6 +166,16 @@ export interface ProductSummary {
   category?: CategorySummary;
 }
 
+export interface ProductListQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+  categoryId?: string;
+  isAvailable?: boolean;
+  sortBy?: "name" | "price" | "sortOrder" | "createdAt" | "updatedAt";
+  sortDirection?: "asc" | "desc";
+}
+
 export interface QrCodeSummary {
   id: string;
   shopId: string;
@@ -166,6 +185,10 @@ export interface QrCodeSummary {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CountSummary {
+  count: number;
 }
 
 export interface ShopDetail extends ShopSummary {

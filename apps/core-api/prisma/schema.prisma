@@ -59,6 +59,9 @@ model Subscription {
   updatedAt DateTime           @updatedAt
   plan      Plan               @relation(fields: [planId], references: [id])
   user      User               @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([userId, status, createdAt])
 }
 
 model Shop {
@@ -79,6 +82,10 @@ model Shop {
   qrCodes     QrCode[]
   owner       User         @relation(fields: [ownerId], references: [id])
   members     ShopMember[]
+
+  @@index([ownerId])
+  @@index([isActive])
+  @@index([createdAt])
 }
 
 model ShopMember {
@@ -108,6 +115,10 @@ model Category {
   updatedAt DateTime  @updatedAt
   shop      Shop      @relation(fields: [shopId], references: [id])
   products  Product[]
+
+  @@index([shopId])
+  @@index([shopId, sortOrder])
+  @@index([shopId, isActive])
 }
 
 model Product {
@@ -125,6 +136,11 @@ model Product {
   imageKey    String?
   category    Category @relation(fields: [categoryId], references: [id])
   shop        Shop     @relation(fields: [shopId], references: [id])
+
+  @@index([shopId])
+  @@index([categoryId])
+  @@index([shopId, sortOrder])
+  @@index([shopId, isAvailable])
 }
 
 model QrCode {
@@ -137,6 +153,10 @@ model QrCode {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   shop      Shop     @relation(fields: [shopId], references: [id])
+
+  @@index([shopId])
+  @@index([shopId, isActive])
+  @@index([shopId, createdAt])
 }
 
 model AuditLog {
@@ -157,7 +177,9 @@ model AuditLog {
 
   @@index([userId])
   @@index([action])
+  @@index([entity])
   @@index([createdAt])
+  @@index([entity, createdAt])
 }
 
 enum UserRole {

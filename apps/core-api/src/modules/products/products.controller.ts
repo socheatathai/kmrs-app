@@ -7,6 +7,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -22,6 +23,7 @@ import { Permissions } from '../../common/decorators/permissions.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import type { AuthUser } from '../../common/types/auth-user.type';
 import { CreateProductDto } from './dto/create-product.dto';
+import { ListProductsDto } from './dto/list-products.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductsService } from './products.service';
 
@@ -51,8 +53,21 @@ export class ProductsController {
   findByShop(
     @CurrentUser() user: AuthUser,
     @Param('shopId', new ParseUUIDPipe()) shopId: string,
+    @Query() query: ListProductsDto,
   ) {
-    return this.productsService.findByShop(user, shopId);
+    return this.productsService.findByShop(user, shopId, query);
+  }
+
+  @ApiOperation({ summary: 'Get one product from a shop' })
+  @ApiOkResponse({ description: 'Shop product' })
+  @Permissions(PERMISSIONS.productsView)
+  @Get(':productId')
+  findOne(
+    @CurrentUser() user: AuthUser,
+    @Param('shopId', new ParseUUIDPipe()) shopId: string,
+    @Param('productId', new ParseUUIDPipe()) productId: string,
+  ) {
+    return this.productsService.findOne(user, shopId, productId);
   }
 
   @ApiOperation({ summary: 'Update a product' })

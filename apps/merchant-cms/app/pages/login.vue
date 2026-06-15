@@ -6,8 +6,7 @@ definePageMeta({
 const auth = useAuthStore();
 const session = useSessionStore();
 const googleIdentity = useGoogleIdentity();
-const { isConfigured: isGoogleConfigured, renderButton: renderGoogleButton } =
-  googleIdentity;
+const { isConfigured: isGoogleConfigured, requestAccessToken } = googleIdentity;
 
 const form = reactive({
   email: "",
@@ -15,7 +14,6 @@ const form = reactive({
 });
 const localError = ref("");
 const showPassword = ref(false);
-const googleButton = ref<HTMLElement | null>(null);
 
 const demoCredentials = {
   email: "nika@example.com",
@@ -54,31 +52,20 @@ const submit = async () => {
   }
 };
 
-const submitGoogle = async (idToken: string) => {
+const submitGoogle = async () => {
   localError.value = "";
 
   try {
-    await auth.googleAuth({ idToken });
+    const accessToken = await requestAccessToken();
+    await auth.googleAuth({ accessToken });
     return navigateAfterAuth();
-  } catch {
+  } catch (error) {
     localError.value =
-      auth.error || "Unable to sign in with Google. Please try again.";
+      auth.error ||
+      (error instanceof Error ? error.message : "") ||
+      "Unable to sign in with Google. Please try again.";
   }
 };
-
-onMounted(async () => {
-  if (!googleButton.value) {
-    return;
-  }
-
-  try {
-    await renderGoogleButton(googleButton.value, submitGoogle, {
-      text: "signin_with",
-    });
-  } catch {
-    localError.value = "Google sign-in is unavailable right now.";
-  }
-});
 </script>
 
 <template>
@@ -147,7 +134,17 @@ onMounted(async () => {
 
       <div v-if="isGoogleConfigured" class="oauth-block">
         <div class="oauth-divider"><span>or</span></div>
-        <div ref="googleButton" class="google-button"></div>
+        <button
+          class="button ghost google-auth-button"
+          type="button"
+          :disabled="auth.pending"
+          @click="submitGoogle"
+        >
+          <span class="google-auth-logo" aria-hidden="true">
+            <span>G</span>
+          </span>
+          <span>Sign in with Google</span>
+        </button>
       </div>
 
       <p class="auth-switch">

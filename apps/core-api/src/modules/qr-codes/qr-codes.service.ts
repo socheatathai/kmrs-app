@@ -84,6 +84,23 @@ export class QrCodesService {
     );
   }
 
+  async countByShop(user: AuthUser, shopId: string, language?: string) {
+    await this.shopsService.ensureAccess(
+      user,
+      shopId,
+      PERMISSIONS.qrCodesView,
+      language,
+    );
+
+    const count = await this.database.execute('qrcodes.countByShop', () =>
+      this.prisma.qrCode.count({
+        where: { shopId },
+      }),
+    );
+
+    return { count };
+  }
+
   async update(
     user: AuthUser,
     shopId: string,

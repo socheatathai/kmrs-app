@@ -4,9 +4,9 @@ definePageMeta({
 });
 
 const auth = useAuthStore();
+const session = useSessionStore();
 const googleIdentity = useGoogleIdentity();
-const { isConfigured: isGoogleConfigured, renderButton: renderGoogleButton } =
-  googleIdentity;
+const { isConfigured: isGoogleConfigured, requestAccessToken } = googleIdentity;
 
 const form = reactive({
   name: "",
@@ -19,7 +19,6 @@ const form = reactive({
 const localError = ref("");
 const showPassword = ref(false);
 const showConfirmPassword = ref(false);
-const googleButton = ref<HTMLElement | null>(null);
 
 const submit = async () => {
   localError.value = "";
@@ -54,41 +53,29 @@ const submit = async () => {
   }
 };
 
-const submitGoogle = async (idToken: string) => {
-  localError.value = "";
+const navigateAfterAuth = async () => {
+  const hasSubscription = await auth.checkActiveSubscription(true);
 
-  if (!form.shopName.trim()) {
-    localError.value =
-      "Please enter your store name before continuing with Google.";
-    return;
-  }
-
-  try {
-    await auth.googleAuth({
-      idToken,
-      shopName: form.shopName.trim(),
-    });
-
-    return navigateTo("/subscription?choosePlan=1");
-  } catch {
-    localError.value =
-      auth.error || "Unable to create account with Google. Please try again.";
-  }
+  return navigateTo(
+    hasSubscription ? session.landingPath : "/subscription?choosePlan=1",
+  );
 };
 
-onMounted(async () => {
-  if (!googleButton.value) {
-    return;
-  }
+const submitGoogle = async () => {
+  localError.value = "";
 
   try {
-    await renderGoogleButton(googleButton.value, submitGoogle, {
-      text: "signup_with",
-    });
-  } catch {
-    localError.value = "Google sign-up is unavailable right now.";
+    const accessToken = await requestAccessToken();
+    await auth.googleAuth({ accessToken });
+
+    return navigateAfterAuth();
+  } catch (error) {
+    localError.value =
+      auth.error ||
+      (error instanceof Error ? error.message : "") ||
+      "Unable to create account with Google. Please try again.";
   }
-});
+};
 </script>
 
 <template>
@@ -183,7 +170,17 @@ onMounted(async () => {
 
       <div v-if="isGoogleConfigured" class="oauth-block">
         <div class="oauth-divider"><span>or</span></div>
-        <div ref="googleButton" class="google-button"></div>
+        <button
+          class="button ghost google-auth-button"
+          type="button"
+          :disabled="auth.pending"
+          @click="submitGoogle"
+        >
+          <span class="google-auth-logo" aria-hidden="true">
+            <span>G</span>
+          </span>
+          <span>Sign up with Google</span>
+        </button>
       </div>
 
       <p class="auth-switch">

@@ -36,8 +36,11 @@ const normalizeSlug = (value: string) => {
 
 type GoogleTokenInfo = {
   aud?: string;
+  issued_to?: string;
+  audience?: string;
   email?: string;
   email_verified?: 'true' | 'false' | boolean;
+  verified_email?: 'true' | 'false' | boolean;
   name?: string;
   given_name?: string;
   family_name?: string;
@@ -130,7 +133,7 @@ export class AuthService {
   }
 
   async googleAuth(dto: GoogleAuthDto) {
-    const profile = await this.verifyGoogleIdToken(dto.idToken);
+    const profile = await this.verifyGoogleProfile(dto);
     const email = profile.email?.trim().toLowerCase();
 
     if (!email) {
@@ -439,6 +442,18 @@ export class AuthService {
     return `${baseSlug.slice(0, 37)}-${Date.now().toString(36)}`;
   }
 
+  private verifyGoogleProfile(dto: GoogleAuthDto) {
+    if (dto.idToken) {
+      return this.verifyGoogleIdToken(dto.idToken);
+    }
+
+    if (dto.accessToken) {
+      return this.verifyGoogleAccessToken(dto.accessToken);
+    }
+
+    throw new BadRequestException(this.i18n.t('auth.googleInvalidToken'));
+  }
+
   private async verifyGoogleIdToken(idToken: string) {
     const clientId = this.configService.get<string>('GOOGLE_OAUTH_CLIENT_ID');
 
@@ -469,11 +484,71 @@ export class AuthService {
       throw new UnauthorizedException(this.i18n.t('auth.googleInvalidToken'));
     }
 
-    if (profile.email_verified !== true && profile.email_verified !== 'true') {
+    if (!this.isGoogleEmailVerified(profile)) {
       throw new BadRequestException(this.i18n.t('auth.googleEmailUnverified'));
     }
 
     return profile;
+  }
+
+  private async verifyGoogleAccessToken(accessToken: string) {
+    const clientId = this.configService.get<string>('GOOGLE_OAUTH_CLIENT_ID');
+
+    if (!clientId) {
+      throw new Error('GOOGLE_OAUTH_CLIENT_ID is not set');
+    }
+
+    const tokenInfoResponse = await fetch(
+      `https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`,
+    );
+
+    if (!tokenInfoResponse.ok) {
+      throw new UnauthorizedException(this.i18n.t('auth.googleInvalidToken'));
+    }
+
+    const tokenInfo = (await tokenInfoResponse.json()) as GoogleTokenInfo;
+    const audience = tokenInfo.aud || tokenInfo.audience || tokenInfo.issued_to;
+
+    if (audience !== clientId) {
+      throw new UnauthorizedException(this.i18n.t('auth.googleInvalidToken'));
+    }
+
+    const userInfoResponse = await fetch(
+      'https://www.googleapis.com/oauth2/v3/userinfo',
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      },
+    );
+
+    if (!userInfoResponse.ok) {
+      throw new UnauthorizedException(this.i18n.t('auth.googleInvalidToken'));
+    }
+
+    const userInfo = (await userInfoResponse.json()) as GoogleTokenInfo;
+    const profile = {
+      ...tokenInfo,
+      ...userInfo,
+      email: userInfo.email || tokenInfo.email,
+      email_verified: userInfo.email_verified ?? tokenInfo.email_verified,
+      verified_email: tokenInfo.verified_email,
+    };
+
+    if (!this.isGoogleEmailVerified(profile)) {
+      throw new BadRequestException(this.i18n.t('auth.googleEmailUnverified'));
+    }
+
+    return profile;
+  }
+
+  private isGoogleEmailVerified(profile: GoogleTokenInfo) {
+    return (
+      profile.email_verified === true ||
+      profile.email_verified === 'true' ||
+      profile.verified_email === true ||
+      profile.verified_email === 'true'
+    );
   }
 
   private decodeGoogleIdTokenClaims(idToken: string): GoogleTokenInfo {
