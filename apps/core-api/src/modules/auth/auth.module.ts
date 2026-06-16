@@ -46,6 +46,9 @@ import { JwtStrategy } from './jwt.strategy';
         const timeout = Number(
           configService.get<string>('SMTP_TIMEOUT_MS') ?? 10000,
         );
+        const addressFamily = Number(
+          configService.get<string>('SMTP_ADDRESS_FAMILY') ?? 0,
+        );
 
         return {
           transport: {
@@ -53,6 +56,9 @@ import { JwtStrategy } from './jwt.strategy';
             port,
             secure: port === 465,
             auth: user && pass ? { user, pass } : undefined,
+            ...(addressFamily === 4 || addressFamily === 6
+              ? { family: addressFamily }
+              : {}),
             connectionTimeout: timeout,
             greetingTimeout: timeout,
             socketTimeout: timeout,
