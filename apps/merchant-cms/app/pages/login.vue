@@ -124,6 +124,9 @@ const submitGoogle = async () => {
             </button>
           </span>
         </label>
+        <NuxtLink class="link auth-form-link" to="/forgot-password">
+          Forgot password?
+        </NuxtLink>
         <div v-if="localError || auth.error" class="error">
           {{ localError || auth.error }}
         </div>

@@ -31,11 +31,14 @@ const columns = [
     <div v-if="pending" class="empty">Loading users...</div>
     <div v-else-if="error" class="error">Unable to load users.</div>
     <div v-else-if="!users?.length" class="empty">No users found.</div>
-    <DataTable v-else row-class="five" :columns="columns" :rows="users">
+    <DataTable v-else row-class="five users-table" :columns="columns" :rows="users">
       <template #cell-name="{ row }">
         <strong>{{ row.name }}</strong>
       </template>
       <template #cell-email="{ value }">
+        <span class="truncate">{{ value }}</span>
+      </template>
+      <template #cell-role="{ value }">
         <span class="truncate">{{ value }}</span>
       </template>
       <template #cell-level="{ value }">

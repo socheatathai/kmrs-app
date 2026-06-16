@@ -1,5 +1,7 @@
 export type UserRole = "SUPER_ADMIN" | "MERCHANT_OWNER" | "STAFF";
 
+export type UserRegisterSource = "LOCAL" | "GOOGLE";
+
 export type ShopAccessRole = "OWNER" | "STAFF";
 
 export type Permission = string;
@@ -51,6 +53,7 @@ export interface AuthUserProfile {
   name: string;
   email: string;
   profileUrl: string | null;
+  registerSource: UserRegisterSource;
   role: UserRole;
   level: number;
   permissions: Permission[];
@@ -64,6 +67,7 @@ export interface ManagedUserSummary {
   name: string;
   email: string;
   profileUrl: string | null;
+  registerSource: UserRegisterSource;
   role: UserRole;
   level: number;
   permissions: Permission[];
@@ -93,6 +97,19 @@ export interface GoogleAuthRequest {
 
 export interface RefreshTokenRequest {
   refreshToken: string;
+}
+
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  password: string;
 }
 
 export interface AuthResponse {

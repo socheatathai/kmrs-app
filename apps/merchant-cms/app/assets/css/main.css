@@ -373,6 +373,7 @@ textarea {
   min-width: 0;
   display: grid;
   gap: 0.25rem;
+  overflow-wrap: anywhere;
 }
 
 .row.head {
@@ -558,6 +559,18 @@ textarea {
   color: var(--muted);
   font-size: 0.88rem;
   text-align: center;
+}
+
+.auth-form-link {
+  width: fit-content;
+  justify-self: end;
+  font-size: 0.84rem;
+}
+
+.token-box {
+  min-height: 92px;
+  resize: vertical;
+  overflow-wrap: anywhere;
 }
 
 .oauth-block {
@@ -1272,6 +1285,9 @@ textarea {
 }
 
 .truncate {
+  display: block;
+  max-width: 100%;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1763,6 +1779,15 @@ textarea {
 
   .row.five {
     grid-template-columns: 1.1fr 1fr 0.75fr 0.9fr 0.9fr;
+  }
+
+  .row.five.users-table {
+    grid-template-columns:
+      minmax(150px, 0.9fr)
+      minmax(220px, 1.35fr)
+      minmax(150px, 0.8fr)
+      minmax(70px, 0.35fr)
+      minmax(100px, 0.45fr);
   }
 
   .row.products-table {

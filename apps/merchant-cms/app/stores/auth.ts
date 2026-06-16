@@ -2,9 +2,11 @@ import { ApiClientError, createApiClient } from "@kmrs-app/api-client";
 import type {
   AuthResponse,
   AuthUserProfile,
+  ForgotPasswordRequest,
   GoogleAuthRequest,
   LoginRequest,
   RegisterRequest,
+  ResetPasswordRequest,
 } from "@kmrs-app/types";
 
 const makeClient = (baseURL: string, token?: string | null) =>
@@ -113,6 +115,38 @@ export const useAuthStore = defineStore("auth", () => {
         err instanceof ApiClientError
           ? err.message
           : "Unable to sign in with Google";
+      throw err;
+    } finally {
+      pending.value = false;
+    }
+  };
+
+  const forgotPassword = async (payload: ForgotPasswordRequest) => {
+    pending.value = true;
+    error.value = "";
+    try {
+      return await makeClient(config.public.apiBase).forgotPassword(payload);
+    } catch (err) {
+      error.value =
+        err instanceof ApiClientError
+          ? err.message
+          : "Unable to request password reset";
+      throw err;
+    } finally {
+      pending.value = false;
+    }
+  };
+
+  const resetPassword = async (payload: ResetPasswordRequest) => {
+    pending.value = true;
+    error.value = "";
+    try {
+      return await makeClient(config.public.apiBase).resetPassword(payload);
+    } catch (err) {
+      error.value =
+        err instanceof ApiClientError
+          ? err.message
+          : "Unable to reset password";
       throw err;
     } finally {
       pending.value = false;
@@ -247,6 +281,8 @@ export const useAuthStore = defineStore("auth", () => {
     login,
     register,
     googleAuth,
+    forgotPassword,
+    resetPassword,
     logout,
     initialize,
     fetchMe,

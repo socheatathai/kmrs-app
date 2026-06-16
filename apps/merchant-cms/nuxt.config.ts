@@ -13,6 +13,8 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       apiBase: process.env.NUXT_PUBLIC_API_BASE || "https://api.kmrs.tech",
+      customerWebBase:
+        process.env.NUXT_PUBLIC_CUSTOMER_WEB_BASE || "https://www.kmrs.tech",
       googleClientId: process.env.NUXT_PUBLIC_GOOGLE_CLIENT_ID || "",
     },
   },

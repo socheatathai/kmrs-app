@@ -17,6 +17,9 @@ model User {
   updatedAt        DateTime       @updatedAt
   tokenVersion     Int            @default(0)
   refreshTokenHash String?
+  registerSource   UserRegisterSource @default(LOCAL)
+  passwordResetTokenHash String?
+  passwordResetExpiresAt DateTime?
   isActive         Boolean        @default(true)
   level            Int            @default(3)
   managedById      String?
@@ -31,6 +34,7 @@ model User {
   @@index([role])
   @@index([level])
   @@index([isActive])
+  @@index([registerSource])
   @@index([managedById])
   @@index([level, isActive])
 }
@@ -186,6 +190,11 @@ enum UserRole {
   SUPER_ADMIN
   MERCHANT_OWNER
   STAFF
+}
+
+enum UserRegisterSource {
+  LOCAL
+  GOOGLE
 }
 
 enum ShopMemberRole {
