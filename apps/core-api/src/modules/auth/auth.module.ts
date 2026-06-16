@@ -43,6 +43,9 @@ import { JwtStrategy } from './jwt.strategy';
         const pass = configService
           .get<string>('SMTP_PASS')
           ?.replace(/\s+/g, '');
+        const timeout = Number(
+          configService.get<string>('SMTP_TIMEOUT_MS') ?? 10000,
+        );
 
         return {
           transport: {
@@ -50,6 +53,9 @@ import { JwtStrategy } from './jwt.strategy';
             port,
             secure: port === 465,
             auth: user && pass ? { user, pass } : undefined,
+            connectionTimeout: timeout,
+            greetingTimeout: timeout,
+            socketTimeout: timeout,
           },
         };
       },
