@@ -13,6 +13,8 @@ import type {
   CreateQrCodeRequest,
   CreateShopRequest,
   CreateSubscriptionRequest,
+  ForgotPasswordRequest,
+  ForgotPasswordResponse,
   GoogleAuthRequest,
   LoginRequest,
   PaginatedResult,
@@ -22,6 +24,7 @@ import type {
   QrCodeSummary,
   RefreshTokenRequest,
   RegisterRequest,
+  ResetPasswordRequest,
   ShopDetail,
   ShopSummary,
   SubscriptionSummary,
@@ -198,8 +201,8 @@ export class ApiClient {
     return this.request<T>("PATCH", endpoint, data);
   }
 
-  delete<T>(endpoint: string): Promise<T> {
-    return this.request<T>("DELETE", endpoint);
+  delete<T>(endpoint: string, data?: unknown): Promise<T> {
+    return this.request<T>("DELETE", endpoint, data);
   }
 
   login(payload: LoginRequest) {
@@ -212,6 +215,14 @@ export class ApiClient {
 
   googleAuth(payload: GoogleAuthRequest) {
     return this.post<AuthResponse>("/auth/google", payload);
+  }
+
+  forgotPassword(payload: ForgotPasswordRequest) {
+    return this.post<ForgotPasswordResponse>("/auth/forgot-password", payload);
+  }
+
+  resetPassword(payload: ResetPasswordRequest) {
+    return this.post<{ message: string }>("/auth/reset-password", payload);
   }
 
   refresh(payload: RefreshTokenRequest) {
@@ -412,8 +423,8 @@ export class ApiClient {
     return this.patch<ManagedUserSummary>(`/users/${userId}`, payload);
   }
 
-  deleteUser(userId: string) {
-    return this.delete<ManagedUserSummary>(`/users/${userId}`);
+  deleteUser(payload: { email: string; password: string }) {
+    return this.delete<ManagedUserSummary>("/users", payload);
   }
 
   getAuditLogs(params?: { action?: string; entity?: string; userId?: string }) {

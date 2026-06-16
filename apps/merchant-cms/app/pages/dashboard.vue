@@ -8,6 +8,9 @@ const client = useApiClient()
 const auth = useAuthStore()
 const session = useSessionStore()
 const shopStore = useShopStore()
+const config = useRuntimeConfig()
+
+const customerWebUrl = computed(() => config.public.customerWebBase.replace(/\/+$/, ''))
 
 const { data: shops, pending: shopsPending, error: shopsError } = await useAsyncData(
   () => `dashboard-shops-${auth.user?.id ?? 'anonymous'}`,
@@ -55,7 +58,7 @@ const activeShops = computed(() => shops.value?.filter((shop) => shop.isActive).
           <h2>Shops</h2>
           <p class="muted">Live data from the `/shops` API.</p>
         </div>
-        <NuxtLink class="button" to="/shops">Open shops</NuxtLink>
+        <NuxtLink class="button" :to="customerWebUrl" external>Open shops</NuxtLink>
       </div>
 
       <div v-if="shopsPending" class="empty">Loading shops...</div>
