@@ -59,10 +59,10 @@ const submit = async () => {
       </div>
 
       <form class="form" @submit.prevent="submit">
-        <label class="field">
+        <!-- <label class="field">
           Reset token
           <textarea v-model="form.token" class="input token-box" required />
-        </label>
+        </label> -->
         <label class="field">
           New password
           <span class="input-wrap">

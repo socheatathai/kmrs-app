@@ -7,6 +7,7 @@ import {
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
+import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { User, UserRegisterSource, UserRole } from '@prisma/client';
@@ -64,6 +65,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly i18n: I18nService,
     private readonly configService: ConfigService,
+    private readonly mailerService: MailerService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -484,15 +486,14 @@ export class AuthService {
   }
 
   private async sendPasswordResetEmail(email: string, token: string) {
-    const apiKey = this.configService.get<string>('RESEND_API_KEY');
     const from = this.configService.get<string>('EMAIL_FROM');
     const cmsUrl =
       this.configService.get<string>('MERCHANT_CMS_URL') ??
       'http://localhost:3001';
 
-    if (!apiKey || !from) {
+    if (!from) {
       this.logger.error(
-        'Password reset email is not configured. Set RESEND_API_KEY and EMAIL_FROM.',
+        'Password reset email is not configured. Set EMAIL_FROM.',
       );
       throw new InternalServerErrorException(
         this.i18n.t('auth.passwordResetEmailFailed'),
@@ -500,31 +501,21 @@ export class AuthService {
     }
 
     const resetUrl = `${cmsUrl.replace(/\/+$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    try {
+      await this.mailerService.sendMail({
         from,
         to: email,
         subject: 'Reset your KMRS password',
         html: `
           <p>Hello,</p>
-          <p>Use the link below to reset your KMRS Merchant CMS password. This link expires in 1 hour.</p>
+          <p>Use the link below to reset your KMRS Merchant CMS password. This link expires in 15 minutes.</p>
           <p><a href="${resetUrl}">Reset password</a></p>
           <p>If you did not request this, you can ignore this email.</p>
         `,
         text: `Reset your KMRS Merchant CMS password: ${resetUrl}`,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => '');
-      this.logger.error(
-        `Password reset email failed: ${response.status} ${errorText}`,
-      );
+      });
+    } catch (error) {
+      this.logger.error('Password reset email failed', error);
       throw new InternalServerErrorException(
         this.i18n.t('auth.passwordResetEmailFailed'),
       );

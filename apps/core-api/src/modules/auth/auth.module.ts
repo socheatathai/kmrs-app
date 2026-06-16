@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
+import { MailerModule } from '@nestjs-modules/mailer';
 import { PassportModule } from '@nestjs/passport';
 
 import { CommonModule } from '../../common/common.module';
@@ -29,6 +30,26 @@ import { JwtStrategy } from './jwt.strategy';
           secret,
           signOptions: {
             expiresIn: '15m',
+          },
+        };
+      },
+    }),
+    MailerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => {
+        const host = configService.get<string>('SMTP_HOST') ?? 'smtp.gmail.com';
+        const port = Number(configService.get<string>('SMTP_PORT') ?? 587);
+        const user = configService.get<string>('SMTP_USER');
+        const pass = configService
+          .get<string>('SMTP_PASS')
+          ?.replace(/\s+/g, '');
+
+        return {
+          transport: {
+            host,
+            port,
+            secure: port === 465,
+            auth: user && pass ? { user, pass } : undefined,
           },
         };
       },
