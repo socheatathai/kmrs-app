@@ -22,6 +22,7 @@ import { Permissions } from '../../common/decorators/permissions.decorator';
 import { Roles } from '../../common/decorators/roles.decorator';
 import type { AuthUser } from '../../common/types/auth-user.type';
 import { CreateUserDto } from './dto/create-user.dto';
+import { DeleteUserDto } from './dto/delete-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
 
@@ -71,14 +72,10 @@ export class UsersController {
     return this.usersService.update(user, userId, dto);
   }
 
-  @ApiOperation({ summary: 'Delete a managed user' })
+  @ApiOperation({ summary: 'Delete a managed user by email' })
   @ApiOkResponse({ description: 'Deleted user' })
-  @Permissions(PERMISSIONS.accountDelete)
-  @Delete(':userId')
-  remove(
-    @CurrentUser() user: AuthUser,
-    @Param('userId', new ParseUUIDPipe()) userId: string,
-  ) {
-    return this.usersService.remove(user, userId);
+  @Delete()
+  remove(@CurrentUser() user: AuthUser, @Body() dto: DeleteUserDto) {
+    return this.usersService.remove(user, dto.email, dto.password);
   }
 }

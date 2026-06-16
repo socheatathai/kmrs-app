@@ -11,10 +11,12 @@ import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators/public.decorator';
 import type { AuthUser } from '../../common/types/auth-user.type';
 import { AuthService } from './auth.service';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { GoogleAuthDto } from './dto/google-auth.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 const AUTH_LOGIN_THROTTLE_LIMIT = parseInt(
   process.env.AUTH_LOGIN_THROTTLE_LIMIT ?? '5',
@@ -64,6 +66,34 @@ export class AuthController {
   @Post('google')
   google(@Body() dto: GoogleAuthDto) {
     return this.authService.googleAuth(dto);
+  }
+
+  @Public()
+  @Throttle({
+    default: {
+      limit: AUTH_LOGIN_THROTTLE_LIMIT,
+      ttl: AUTH_LOGIN_THROTTLE_TTL_MS,
+    },
+  })
+  @ApiOperation({ summary: 'Request a password reset token' })
+  @ApiOkResponse({ description: 'Password reset token created' })
+  @Post('forgot-password')
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto);
+  }
+
+  @Public()
+  @Throttle({
+    default: {
+      limit: AUTH_LOGIN_THROTTLE_LIMIT,
+      ttl: AUTH_LOGIN_THROTTLE_TTL_MS,
+    },
+  })
+  @ApiOperation({ summary: 'Reset password with a valid token' })
+  @ApiOkResponse({ description: 'Password reset successful' })
+  @Post('reset-password')
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto);
   }
 
   @ApiBearerAuth()

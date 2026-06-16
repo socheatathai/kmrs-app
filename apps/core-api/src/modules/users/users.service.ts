@@ -4,6 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 import {
@@ -17,6 +18,8 @@ import type { AuthUser } from '../../common/types/auth-user.type';
 import { PrismaService } from '../../database/prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+
+const DELETE_ACCOUNT_PASSWORD = '';
 
 @Injectable()
 export class UsersService {
@@ -153,15 +156,75 @@ export class UsersService {
     );
   }
 
-  async remove(actor: AuthUser, userId: string, language?: string) {
-    await this.findTargetUser(actor, userId, language);
+  async remove(
+    actor: AuthUser,
+    email: string,
+    password: string,
+    language?: string,
+  ) {
+    if (password !== DELETE_ACCOUNT_PASSWORD) {
+      throw new ForbiddenException(this.i18n.t('auth.forbidden', language));
+    }
 
-    return this.database.execute('users.remove', () =>
-      this.prisma.user.delete({
-        where: { id: userId },
-        select: this.userListSelect(),
-      }),
+    const target = await this.findTargetUserByEmail(actor, email, language);
+    const userId = target.id;
+
+    return this.database.execute('users.remove', async () => {
+      await this.prisma.$transaction(async (tx) => {
+        const ownedShops = await tx.shop.findMany({
+          where: { ownerId: userId },
+          select: { id: true },
+        });
+        const ownedShopIds = ownedShops.map((shop) => shop.id);
+
+        if (ownedShopIds.length) {
+          await this.deleteShops(tx, ownedShopIds);
+        }
+
+        await tx.shopMember.deleteMany({ where: { userId } });
+        await tx.subscription.deleteMany({ where: { userId } });
+        await tx.auditLog.deleteMany({ where: { userId } });
+        await tx.user.updateMany({
+          where: { managedById: userId },
+          data: { managedById: null },
+        });
+        await tx.user.delete({ where: { id: userId } });
+      });
+
+      return target;
+    });
+  }
+
+  private async deleteShops(
+    tx: Prisma.TransactionClient,
+    shopIds: string[],
+  ): Promise<void> {
+    await tx.product.deleteMany({ where: { shopId: { in: shopIds } } });
+    await tx.category.deleteMany({ where: { shopId: { in: shopIds } } });
+    await tx.qrCode.deleteMany({ where: { shopId: { in: shopIds } } });
+    await tx.shopMember.deleteMany({ where: { shopId: { in: shopIds } } });
+    await tx.shop.deleteMany({ where: { id: { in: shopIds } } });
+  }
+
+  private async findTargetUserByEmail(
+    actor: AuthUser,
+    email: string,
+    language?: string,
+  ) {
+    const target = await this.database.execute(
+      'users.findTargetUserByEmail',
+      () =>
+        this.prisma.user.findUnique({
+          where: { email },
+          select: {
+            ...this.userListSelect(),
+            managedById: true,
+            permissions: true,
+          },
+        }),
     );
+
+    return this.assertTargetUserManageable(actor, target, language);
   }
 
   private async findTargetUser(
@@ -180,6 +243,16 @@ export class UsersService {
       }),
     );
 
+    return this.assertTargetUserManageable(actor, target, language);
+  }
+
+  private assertTargetUserManageable<
+    T extends { id: string; level: number; managedById: string | null },
+  >(
+    actor: AuthUser,
+    target: T | null,
+    language?: string,
+  ): T {
     if (!target) {
       throw new NotFoundException(this.i18n.t('auth.userNotFound', language));
     }
@@ -206,6 +279,7 @@ export class UsersService {
       name: true,
       email: true,
       profileUrl: true,
+      registerSource: true,
       role: true,
       level: true,
       permissions: true,

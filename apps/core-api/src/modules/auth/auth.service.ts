@@ -3,13 +3,15 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  InternalServerErrorException,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { User, UserRole } from '@prisma/client';
+import { User, UserRegisterSource, UserRole } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 
 import { AccessControlService } from '../../common/services/access-control.service';
 import {
@@ -20,8 +22,10 @@ import { I18nService } from '../../common/i18n/i18n.service';
 import { DatabaseService } from '../../common/services/database.service';
 import { PrismaService } from '../../database/prisma/prisma.service';
 import { GoogleAuthDto } from './dto/google-auth.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 const normalizeSlug = (value: string) => {
   const slug = value
@@ -47,8 +51,12 @@ type GoogleTokenInfo = {
   picture?: string;
 };
 
+const PASSWORD_RESET_EXPIRES_MS = 60 * 60 * 1000;
+
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly database: DatabaseService,
@@ -87,6 +95,7 @@ export class AuthService {
             name: dto.name,
             email: dto.email,
             password,
+            registerSource: UserRegisterSource.LOCAL,
             role: UserRole.MERCHANT_OWNER,
             level: LEVELS.ADMIN_MIDDLE,
             permissions: [...LEVEL_DEFAULT_PERMISSIONS[LEVELS.ADMIN_MIDDLE]],
@@ -189,6 +198,7 @@ export class AuthService {
             email,
             password,
             profileUrl: profile.picture,
+            registerSource: UserRegisterSource.GOOGLE,
             role: UserRole.MERCHANT_OWNER,
             level: LEVELS.ADMIN_MIDDLE,
             permissions: [...LEVEL_DEFAULT_PERMISSIONS[LEVELS.ADMIN_MIDDLE]],
@@ -208,6 +218,84 @@ export class AuthService {
     );
 
     return this.buildAuthResponse(user);
+  }
+
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const user = await this.database.execute('auth.forgotPassword.findUser', () =>
+      this.prisma.user.findUnique({
+        where: { email: dto.email },
+        select: { id: true, isActive: true },
+      }),
+    );
+
+    if (!user || !user.isActive) {
+      return {
+        message: this.i18n.t('auth.passwordResetRequested'),
+      };
+    }
+
+    const resetToken = randomBytes(32).toString('hex');
+    const resetTokenHash = this.hashResetToken(resetToken);
+    const expiresAt = new Date(Date.now() + PASSWORD_RESET_EXPIRES_MS);
+
+    await this.database.execute('auth.forgotPassword.storeToken', () =>
+      this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordResetTokenHash: resetTokenHash,
+          passwordResetExpiresAt: expiresAt,
+        },
+      }),
+    );
+
+    await this.sendPasswordResetEmail(dto.email, resetToken);
+
+    return {
+      message: this.i18n.t('auth.passwordResetRequested'),
+    };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const resetTokenHash = this.hashResetToken(dto.token);
+    const user = await this.database.execute(
+      'auth.resetPassword.findUser',
+      () =>
+        this.prisma.user.findFirst({
+          where: {
+            passwordResetTokenHash: resetTokenHash,
+            passwordResetExpiresAt: { gt: new Date() },
+            isActive: true,
+          },
+          select: {
+            id: true,
+          },
+        }),
+    );
+
+    if (!user) {
+      throw new BadRequestException(this.i18n.t('auth.passwordResetInvalid'));
+    }
+
+    const password = await bcrypt.hash(dto.password, 10);
+
+    await this.database.execute('auth.resetPassword.updatePassword', () =>
+      this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          password,
+          passwordResetTokenHash: null,
+          passwordResetExpiresAt: null,
+          refreshTokenHash: null,
+          tokenVersion: {
+            increment: 1,
+          },
+        },
+      }),
+    );
+
+    return {
+      message: this.i18n.t('auth.passwordResetSuccess'),
+    };
   }
 
   async refresh(refreshToken: string) {
@@ -276,6 +364,7 @@ export class AuthService {
           name: true,
           email: true,
           profileUrl: true,
+          registerSource: true,
           role: true,
           level: true,
           permissions: true,
@@ -381,12 +470,65 @@ export class AuthService {
         name: user.name,
         email: user.email,
         profileUrl: user.profileUrl,
+        registerSource: user.registerSource,
         role: user.role,
         level: user.level,
         permissions: access.permissions,
         accessibleShops: access.shops,
       },
     };
+  }
+
+  private hashResetToken(token: string) {
+    return createHash('sha256').update(token).digest('hex');
+  }
+
+  private async sendPasswordResetEmail(email: string, token: string) {
+    const apiKey = this.configService.get<string>('RESEND_API_KEY');
+    const from = this.configService.get<string>('EMAIL_FROM');
+    const cmsUrl =
+      this.configService.get<string>('MERCHANT_CMS_URL') ??
+      'http://localhost:3001';
+
+    if (!apiKey || !from) {
+      this.logger.error(
+        'Password reset email is not configured. Set RESEND_API_KEY and EMAIL_FROM.',
+      );
+      throw new InternalServerErrorException(
+        this.i18n.t('auth.passwordResetEmailFailed'),
+      );
+    }
+
+    const resetUrl = `${cmsUrl.replace(/\/+$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from,
+        to: email,
+        subject: 'Reset your KMRS password',
+        html: `
+          <p>Hello,</p>
+          <p>Use the link below to reset your KMRS Merchant CMS password. This link expires in 1 hour.</p>
+          <p><a href="${resetUrl}">Reset password</a></p>
+          <p>If you did not request this, you can ignore this email.</p>
+        `,
+        text: `Reset your KMRS Merchant CMS password: ${resetUrl}`,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      this.logger.error(
+        `Password reset email failed: ${response.status} ${errorText}`,
+      );
+      throw new InternalServerErrorException(
+        this.i18n.t('auth.passwordResetEmailFailed'),
+      );
+    }
   }
 
   private async ensureMerchantOwnerShop(user: User) {
