@@ -17,7 +17,7 @@ const EMAIL_SEND_TIMEOUT_MS = 10_000;
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private readonly resend: Resend;
+  private readonly resend?: Resend;
 
   constructor(
     private readonly configService: ConfigService,
@@ -26,7 +26,8 @@ export class EmailService {
     const apiKey = this.configService.get<string>('RESEND_API_KEY');
 
     if (!apiKey) {
-      throw new Error('RESEND_API_KEY is not set');
+      this.logger.warn('RESEND_API_KEY is not set. Email sending is disabled.');
+      return;
     }
 
     this.resend = new Resend(apiKey);
@@ -37,6 +38,10 @@ export class EmailService {
 
     if (!from) {
       throw new Error('EMAIL_FROM is not set');
+    }
+
+    if (!this.resend) {
+      throw new Error('RESEND_API_KEY is not set');
     }
 
     await this.reservePasswordResetEmailQuota();
