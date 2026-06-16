@@ -2,12 +2,12 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
   Logger,
   UnauthorizedException,
 } from '@nestjs/common';
-import { MailerService } from '@nestjs-modules/mailer';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { User, UserRegisterSource, UserRole } from '@prisma/client';
@@ -22,6 +22,7 @@ import {
 import { I18nService } from '../../common/i18n/i18n.service';
 import { DatabaseService } from '../../common/services/database.service';
 import { PrismaService } from '../../database/prisma/prisma.service';
+import { EmailService } from '../email/email.service';
 import { GoogleAuthDto } from './dto/google-auth.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { LoginDto } from './dto/login.dto';
@@ -65,7 +66,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly i18n: I18nService,
     private readonly configService: ConfigService,
-    private readonly mailerService: MailerService,
+    private readonly emailService: EmailService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -250,7 +251,24 @@ export class AuthService {
       }),
     );
 
-    await this.sendPasswordResetEmail(dto.email, resetToken);
+    const resetUrl = this.buildPasswordResetUrl(resetToken);
+
+    try {
+      await this.emailService.sendResetPasswordEmail(dto.email, resetUrl);
+    } catch (error) {
+      this.logger.error(
+        'Password reset email failed',
+        error instanceof Error ? error.stack : JSON.stringify(error),
+      );
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(
+        this.i18n.t('auth.passwordResetEmailFailed'),
+      );
+    }
 
     return {
       message: this.i18n.t('auth.passwordResetRequested'),
@@ -485,41 +503,12 @@ export class AuthService {
     return createHash('sha256').update(token).digest('hex');
   }
 
-  private async sendPasswordResetEmail(email: string, token: string) {
-    const from = this.configService.get<string>('EMAIL_FROM');
-    const cmsUrl =
-      this.configService.get<string>('MERCHANT_CMS_URL') ??
+  private buildPasswordResetUrl(token: string) {
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') ??
       'http://localhost:3001';
 
-    if (!from) {
-      this.logger.error(
-        'Password reset email is not configured. Set EMAIL_FROM.',
-      );
-      throw new InternalServerErrorException(
-        this.i18n.t('auth.passwordResetEmailFailed'),
-      );
-    }
-
-    const resetUrl = `${cmsUrl.replace(/\/+$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
-    try {
-      await this.mailerService.sendMail({
-        from,
-        to: email,
-        subject: 'Reset your KMRS password',
-        html: `
-          <p>Hello,</p>
-          <p>Use the link below to reset your KMRS Merchant CMS password. This link expires in 15 minutes.</p>
-          <p><a href="${resetUrl}">Reset password</a></p>
-          <p>If you did not request this, you can ignore this email.</p>
-        `,
-        text: `Reset your KMRS Merchant CMS password: ${resetUrl}`,
-      });
-    } catch (error) {
-      this.logger.error('Password reset email failed', error);
-      throw new InternalServerErrorException(
-        this.i18n.t('auth.passwordResetEmailFailed'),
-      );
-    }
+    return `${frontendUrl.replace(/\/+$/, '')}/reset-password?token=${encodeURIComponent(token)}`;
   }
 
   private async ensureMerchantOwnerShop(user: User) {

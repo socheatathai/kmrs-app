@@ -2,13 +2,13 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
-import { MailerModule } from '@nestjs-modules/mailer';
 import { PassportModule } from '@nestjs/passport';
 
 import { CommonModule } from '../../common/common.module';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { EmailModule } from '../email/email.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
@@ -16,6 +16,7 @@ import { JwtStrategy } from './jwt.strategy';
 @Module({
   imports: [
     CommonModule,
+    EmailModule,
     PassportModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
@@ -30,38 +31,6 @@ import { JwtStrategy } from './jwt.strategy';
           secret,
           signOptions: {
             expiresIn: '15m',
-          },
-        };
-      },
-    }),
-    MailerModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (configService: ConfigService) => {
-        const host = configService.get<string>('SMTP_HOST') ?? 'smtp.gmail.com';
-        const port = Number(configService.get<string>('SMTP_PORT') ?? 587);
-        const user = configService.get<string>('SMTP_USER');
-        const pass = configService
-          .get<string>('SMTP_PASS')
-          ?.replace(/\s+/g, '');
-        const timeout = Number(
-          configService.get<string>('SMTP_TIMEOUT_MS') ?? 10000,
-        );
-        const addressFamily = Number(
-          configService.get<string>('SMTP_ADDRESS_FAMILY') ?? 0,
-        );
-
-        return {
-          transport: {
-            host,
-            port,
-            secure: port === 465,
-            auth: user && pass ? { user, pass } : undefined,
-            ...(addressFamily === 4 || addressFamily === 6
-              ? { family: addressFamily }
-              : {}),
-            connectionTimeout: timeout,
-            greetingTimeout: timeout,
-            socketTimeout: timeout,
           },
         };
       },

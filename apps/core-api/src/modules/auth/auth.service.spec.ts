@@ -98,8 +98,8 @@ describe('AuthService', () => {
       return undefined;
     }),
   } as unknown as ConfigService;
-  const mailerService = {
-    sendMail: jest.fn(),
+  const emailService = {
+    sendResetPasswordEmail: jest.fn(),
   };
 
   let service: AuthService;
@@ -120,7 +120,7 @@ describe('AuthService', () => {
       jwtService,
       i18n,
       configService,
-      mailerService as never,
+      emailService as never,
     );
   });
 
