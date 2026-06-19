@@ -75,8 +75,8 @@ export class AuthController {
       ttl: AUTH_LOGIN_THROTTLE_TTL_MS,
     },
   })
-  @ApiOperation({ summary: 'Request a password reset token' })
-  @ApiOkResponse({ description: 'Password reset token created' })
+  @ApiOperation({ summary: 'Send a password reset email' })
+  @ApiOkResponse({ description: 'Password reset email queued' })
   @Post('forgot-password')
   forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto);

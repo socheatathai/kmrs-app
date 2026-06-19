@@ -8,6 +8,8 @@ import {
   getPublicProducts,
 } from "@/lib/api";
 import { MenuShell } from "@/components/menu/menu-shell";
+import { MenuServiceUnavailable } from "@/components/menu/menu-service-unavailable";
+import { siteConfig } from "@/lib/site";
 
 type MenuPageProps = {
   params: Promise<{ slug: string }>;
@@ -20,19 +22,43 @@ export async function generateMetadata({
 
   try {
     const shop = await getPublicMenu(slug);
+    const description =
+      shop.description ?? `Browse ${shop.name}'s digital menu on KMRS App.`;
+    const image = shop.coverUrl ?? shop.logoUrl ?? siteConfig.logo;
 
     return {
-      title: `${shop.name} | KMRS Menu`,
-      description: shop.description ?? `Browse ${shop.name}'s digital menu.`,
+      title: `${shop.name} Digital Menu`,
+      description,
+      alternates: {
+        canonical: `/${slug}`,
+      },
+      openGraph: {
+        type: "website",
+        url: `/${slug}`,
+        title: `${shop.name} Digital Menu`,
+        description,
+        images: [{ url: image, alt: shop.name }],
+      },
+      twitter: {
+        card: "summary_large_image",
+        title: `${shop.name} Digital Menu`,
+        description,
+        images: [image],
+      },
     };
   } catch (error) {
     if (error instanceof ApiNotFoundError) {
       return {
-        title: "Menu not found | KMRS",
+        title: "Menu Not Found",
+        robots: { index: false, follow: false },
       };
     }
 
-    throw error;
+    return {
+      title: "Menu Temporarily Unavailable",
+      description: "This menu is temporarily unavailable. Please try again.",
+      robots: { index: false, follow: false },
+    };
   }
 }
 
@@ -54,7 +80,7 @@ export default async function MenuPage({ params }: MenuPageProps) {
       notFound();
     }
 
-    throw error;
+    return <MenuServiceUnavailable retryHref={`/${slug}`} />;
   }
 
   return (

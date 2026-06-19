@@ -8,6 +8,7 @@ import { CommonModule } from '../../common/common.module';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../../common/guards/permissions.guard';
 import { RolesGuard } from '../../common/guards/roles.guard';
+import { EmailModule } from '../email/email.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
@@ -15,6 +16,7 @@ import { JwtStrategy } from './jwt.strategy';
 @Module({
   imports: [
     CommonModule,
+    EmailModule,
     PassportModule,
     JwtModule.registerAsync({
       inject: [ConfigService],

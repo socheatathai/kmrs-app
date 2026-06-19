@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 const dashboardNavItems = ["Shops", "Description", "Catalog", "QR Codes"];
 const dashboardMetrics = [
   ["Accessible shops", "1"],
@@ -11,11 +13,15 @@ export function LandingDashboardPreview() {
       <div className="grid min-h-[28rem] grid-cols-[4.75rem_minmax(0,1fr)] sm:grid-cols-[13rem_1fr]">
         <aside className="flex flex-col border-r border-slate-800 bg-[#07090d] p-3">
           <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-lg bg-emerald-500/20 text-lg font-black text-emerald-400">
-              K
-            </span>
+            <Image
+              alt="KMRS App"
+              className="h-10 w-10 rounded-lg object-cover ring-1 ring-amber-400/30"
+              height={640}
+              src="/logo.png"
+              width={640}
+            />
             <div className="hidden sm:block">
-              <p className="text-base font-black text-white">KMRS</p>
+              <p className="text-base font-black text-white">KMRS App</p>
               <p className="text-xs font-semibold text-slate-400">
                 Merchant CMS
               </p>

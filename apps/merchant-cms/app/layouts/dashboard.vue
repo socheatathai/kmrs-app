@@ -1,13 +1,52 @@
 <script setup lang="ts">
 import { NAV_ITEMS } from '~/constants/navigation'
+import type { ShopDetail } from '@kmrs-app/types'
 
 const route = useRoute()
+const config = useRuntimeConfig()
+const client = useApiClient()
 const auth = useAuthStore()
 const session = useSessionStore()
 const shop = useShopStore()
 const drawerOpen = ref(false)
 const currentYear = new Date().getFullYear()
 const avatarFailed = ref(false)
+const selectedShopDetail = ref<ShopDetail | null>(null)
+let selectedShopRequest = 0
+
+const storefrontHref = computed(() => {
+  if (session.mode !== 'merchant' || !selectedShopDetail.value?.slug) {
+    return ''
+  }
+
+  const baseUrl = config.public.customerWebBase.replace(/\/+$/, '')
+  return `${baseUrl}/${encodeURIComponent(selectedShopDetail.value.slug)}`
+})
+
+watch(
+  () => shop.selectedShopId,
+  async (shopId) => {
+    const requestId = ++selectedShopRequest
+    selectedShopDetail.value = null
+
+    if (session.mode !== 'merchant' || !shopId) {
+      return
+    }
+
+    try {
+      const detail = await client.getShop(shopId)
+
+      if (requestId === selectedShopRequest) {
+        selectedShopDetail.value = detail
+      }
+    } catch {
+      if (requestId === selectedShopRequest) {
+        selectedShopDetail.value = null
+      }
+    }
+  },
+  { immediate: true }
+)
 
 const links = computed(() =>
   NAV_ITEMS.filter((item) =>
@@ -64,6 +103,9 @@ const isActive = (path: string) => {
 const title = computed(() =>
   navGroups.value.flatMap((group) => group.items).find((item) => isActive(item.to))?.label ?? 'Dashboard'
 )
+useHead({
+  title
+})
 const isGroupActive = (items: typeof links.value) => items.some((item) => isActive(item.to))
 const openGroups = reactive<Record<string, boolean>>({})
 
@@ -101,9 +143,9 @@ watch(() => session.profileUrl, () => {
     <aside class="sidebar">
       <div class="sidebar-head">
         <div class="brand">
-          <div class="brand-mark">K</div>
+          <img class="brand-mark" src="/logo.png" alt="KMRS App">
           <div>
-            <div class="brand-title">KMRS</div>
+            <div class="brand-title">KMRS App</div>
             <div class="brand-sub">{{ session.mode === 'admin' ? 'Admin Console' : 'Merchant CMS' }}</div>
           </div>
         </div>
@@ -171,6 +213,17 @@ watch(() => session.profileUrl, () => {
           <div class="page-title">{{ title }}</div>
           <div class="page-subtitle">{{ session.mode === 'admin' ? 'Platform operations' : shop.selectedShop?.shopName || 'Merchant workspace' }}</div>
         </div>
+        <a
+          v-if="storefrontHref"
+          class="button storefront-button"
+          :href="storefrontHref"
+          target="_blank"
+          rel="noopener noreferrer"
+          :aria-label="`View ${shop.selectedShop?.shopName || 'store'} customer menu`"
+        >
+          <span class="storefront-button-label">View Store</span>
+          <span class="i-lucide-external-link storefront-button-icon" aria-hidden="true" />
+        </a>
       </header>
 
       <main class="content">
@@ -178,7 +231,7 @@ watch(() => session.profileUrl, () => {
       </main>
 
       <footer class="app-footer">
-        <span>KMRS Merchant CMS</span>
+        <span>KMRS App Merchant Dashboard</span>
         <span>{{ currentYear }}</span>
       </footer>
     </div>
@@ -189,9 +242,9 @@ watch(() => session.profileUrl, () => {
         <aside class="drawer">
           <div class="drawer-head">
             <div class="brand">
-              <div class="brand-mark">K</div>
+              <img class="brand-mark" src="/logo.png" alt="KMRS App">
               <div>
-                <div class="brand-title">KMRS</div>
+                <div class="brand-title">KMRS App</div>
                 <div class="brand-sub">{{ session.mode === 'admin' ? 'Admin Console' : 'Merchant CMS' }}</div>
               </div>
             </div>

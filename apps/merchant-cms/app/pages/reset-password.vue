@@ -3,6 +3,10 @@ definePageMeta({
   middleware: "guest",
 });
 
+useHead({
+  title: "Reset Password",
+});
+
 const route = useRoute();
 const auth = useAuthStore();
 
@@ -51,7 +55,7 @@ const submit = async () => {
   <main class="auth-page">
     <section class="auth-card">
       <div class="brand">
-        <div class="brand-mark">K</div>
+        <img class="brand-mark" src="/logo.png" alt="KMRS App" />
         <div>
           <h1 class="brand-title">New Password</h1>
           <p class="brand-sub">Set a new password for your account</p>
@@ -59,10 +63,10 @@ const submit = async () => {
       </div>
 
       <form class="form" @submit.prevent="submit">
-        <label class="field">
+        <!-- <label class="field">
           Reset token
           <textarea v-model="form.token" class="input token-box" required />
-        </label>
+        </label> -->
         <label class="field">
           New password
           <span class="input-wrap">

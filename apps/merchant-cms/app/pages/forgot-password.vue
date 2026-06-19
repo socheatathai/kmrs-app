@@ -3,69 +3,30 @@ definePageMeta({
   middleware: "guest",
 });
 
-const auth = useAuthStore();
-
-const form = reactive({
-  email: "",
+useHead({
+  title: "Forgot Password",
 });
 
-const localError = ref("");
-const successMessage = ref("");
-
-const submit = async () => {
-  localError.value = "";
-  successMessage.value = "";
-
-  if (!form.email.trim()) {
-    localError.value = "Please enter your email address.";
-    return;
-  }
-
-  try {
-    const response = await auth.forgotPassword({
-      email: form.email.trim(),
-    });
-
-    successMessage.value = response.message;
-  } catch {
-    localError.value =
-      auth.error || "Unable to request password reset. Please try again.";
-  }
-};
 </script>
 
 <template>
   <main class="auth-page">
     <section class="auth-card">
       <div class="brand">
-        <div class="brand-mark">K</div>
+        <img class="brand-mark" src="/logo.png" alt="KMRS App" />
         <div>
           <h1 class="brand-title">Reset Password</h1>
-          <p class="brand-sub">Send a reset link to your email</p>
+          <p class="brand-sub">Password recovery</p>
         </div>
       </div>
 
-      <form class="form" @submit.prevent="submit">
-        <label class="field">
-          Email
-          <input
-            v-model="form.email"
-            class="input"
-            type="email"
-            autocomplete="email"
-            required
-          />
-        </label>
-        <div v-if="localError || auth.error" class="error">
-          {{ localError || auth.error }}
-        </div>
-        <div v-if="successMessage" class="success">
-          {{ successMessage }}
-        </div>
-        <button class="button primary" type="submit" :disabled="auth.pending">
-          {{ auth.pending ? "Sending..." : "Send reset email" }}
-        </button>
-      </form>
+      <div class="service-notice" role="status">
+        <strong>Password reset is not available yet.</strong>
+        <p>
+          This service is currently under development. Please contact support
+          or try again later.
+        </p>
+      </div>
 
       <p class="auth-switch">
         Remember your password?
