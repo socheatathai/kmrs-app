@@ -70,6 +70,7 @@ export function LandingMotion() {
       (entries) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return;
+          entry.target.classList.remove("reveal-pending");
           entry.target.classList.add("is-visible");
           observer.unobserve(entry.target);
         });
@@ -80,7 +81,20 @@ export function LandingMotion() {
       },
     );
 
-    elements.forEach((element) => observer.observe(element));
+    elements.forEach((element) => {
+      const bounds = element.getBoundingClientRect();
+      const isAlreadyVisible =
+        bounds.bottom > 0 && bounds.top < window.innerHeight * 0.9;
+
+      if (isAlreadyVisible) {
+        element.classList.add("is-visible");
+        return;
+      }
+
+      element.classList.add("reveal-pending");
+      observer.observe(element);
+    });
+
     return () => {
       observer.disconnect();
       document.removeEventListener("click", handleSectionClick);
