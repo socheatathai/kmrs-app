@@ -15,7 +15,7 @@ export function LandingDashboardPreview() {
               K
             </span>
             <div className="hidden sm:block">
-              <p className="text-base font-black text-white">KMRS</p>
+              <p className="text-base font-black text-white">KMRS App</p>
               <p className="text-xs font-semibold text-slate-400">
                 Merchant CMS
               </p>

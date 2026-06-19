@@ -3,6 +3,10 @@ definePageMeta({
   middleware: "guest",
 });
 
+useHead({
+  title: "Sign In",
+});
+
 const auth = useAuthStore();
 const session = useSessionStore();
 const googleIdentity = useGoogleIdentity();
@@ -72,10 +76,10 @@ const submitGoogle = async () => {
   <main class="auth-page">
     <section class="auth-card">
       <div class="brand">
-        <div class="brand-mark">K</div>
+        <img class="brand-mark" src="/logo.png" alt="KMRS App" />
         <div>
-          <h1 class="brand-title">KMRS Merchant CMS</h1>
-          <p class="brand-sub">Sign in Account with your credentials</p>
+          <h1 class="brand-title">KMRS App</h1>
+          <p class="brand-sub">Sign in to your merchant dashboard</p>
         </div>
       </div>
 

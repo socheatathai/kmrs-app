@@ -24,7 +24,7 @@ export function ProductDetailShell({
       <section className="px-5 py-6 md:px-8 md:py-8">
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
           <Link
-            className="inline-flex items-center gap-2 self-start rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-[0_8px_30px_rgba(15,23,42,0.08)]"
+            className="inline-flex items-center gap-2 self-start rounded-full border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-[0_8px_30px_rgba(15,23,42,0.08)] transition hover:border-emerald-400 hover:text-emerald-700"
             href={`/${shop.slug}`}
           >
             <ArrowLeft className="h-4 w-4" />
@@ -37,7 +37,7 @@ export function ProductDetailShell({
             initial={{ opacity: 0, y: 24 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
           >
-            <div className="relative h-64 overflow-hidden bg-[linear-gradient(140deg,#fecaca,#fed7aa)] md:h-[26rem]">
+            <div className="relative h-64 overflow-hidden bg-[linear-gradient(140deg,#f7efd8,#e2c470)] md:h-[26rem]">
               {product.imageUrl ? (
                 <Image
                   alt={product.name}
@@ -48,7 +48,7 @@ export function ProductDetailShell({
                   src={product.imageUrl}
                 />
               ) : (
-                <div className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_top,#f97316,transparent_45%),linear-gradient(160deg,#0f172a,#1e3a8a)] px-6 text-center text-3xl font-semibold text-white md:text-5xl">
+                <div className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_top,#d4a83f,transparent_45%),linear-gradient(160deg,#14212d,#70491d)] px-6 text-center text-3xl font-semibold text-white md:text-5xl">
                   {product.name}
                 </div>
               )}
@@ -76,7 +76,7 @@ export function ProductDetailShell({
                 </p>
               </div>
 
-              <aside className="flex flex-col gap-4 rounded-lg bg-slate-50 p-4 md:rounded-[1.1rem] md:p-5">
+              <aside className="flex flex-col gap-4 rounded-lg border border-emerald-100 bg-emerald-50/45 p-4 md:rounded-[1.1rem] md:p-5">
                 <div>
                   <p className="text-xs font-black uppercase text-slate-500">
                     {shop.name}

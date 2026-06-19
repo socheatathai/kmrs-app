@@ -3,6 +3,10 @@ definePageMeta({
   middleware: "guest",
 });
 
+useHead({
+  title: "Forgot Password",
+});
+
 const auth = useAuthStore();
 
 const form = reactive({
@@ -38,7 +42,7 @@ const submit = async () => {
   <main class="auth-page">
     <section class="auth-card">
       <div class="brand">
-        <div class="brand-mark">K</div>
+        <img class="brand-mark" src="/logo.png" alt="KMRS App" />
         <div>
           <h1 class="brand-title">Reset Password</h1>
           <p class="brand-sub">Send a reset link to your email</p>

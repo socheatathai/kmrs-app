@@ -3,6 +3,10 @@ definePageMeta({
   middleware: "guest",
 });
 
+useHead({
+  title: "Reset Password",
+});
+
 const route = useRoute();
 const auth = useAuthStore();
 
@@ -51,7 +55,7 @@ const submit = async () => {
   <main class="auth-page">
     <section class="auth-card">
       <div class="brand">
-        <div class="brand-mark">K</div>
+        <img class="brand-mark" src="/logo.png" alt="KMRS App" />
         <div>
           <h1 class="brand-title">New Password</h1>
           <p class="brand-sub">Set a new password for your account</p>
