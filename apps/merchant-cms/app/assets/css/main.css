@@ -497,6 +497,26 @@ textarea {
   color: var(--muted);
 }
 
+.service-notice {
+  display: grid;
+  gap: 0.45rem;
+  border: 1px solid rgba(201, 154, 46, 0.3);
+  border-radius: 10px;
+  background: rgba(201, 154, 46, 0.1);
+  color: var(--text);
+  padding: 1rem;
+}
+
+.service-notice strong {
+  color: var(--primary);
+}
+
+.service-notice p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
 .error {
   border-color: rgba(255, 125, 98, 0.34);
   background: rgba(120, 38, 28, 0.28);
