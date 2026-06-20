@@ -259,11 +259,11 @@ function PrimaryButton({
 }) {
   return (
     <Link
-      className="group inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-black text-white shadow-[0_18px_38px_rgba(16,185,129,0.28)] transition duration-300 hover:-translate-y-1 hover:bg-emerald-600 hover:shadow-[0_22px_46px_rgba(16,185,129,0.34)] sm:px-6"
+      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(16,185,129,0.24)] transition-colors duration-200 hover:bg-emerald-600 sm:px-6"
       href={href}
     >
       {children}
-      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+      <ArrowRight className="h-4 w-4" />
     </Link>
   );
 }
@@ -277,7 +277,7 @@ function SecondaryButton({
 }) {
   return (
     <Link
-      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white/80 px-5 py-3 text-sm font-black text-slate-950 shadow-sm backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-slate-300 hover:bg-white hover:shadow-lg sm:px-6"
+      className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white/80 px-5 py-3 text-sm font-black text-slate-950 shadow-sm backdrop-blur transition-colors duration-200 hover:border-slate-300 hover:bg-white sm:px-6"
       href={href}
     >
       {children}
@@ -304,14 +304,13 @@ export default async function Home() {
         id="demo"
       >
         <div className="hero-grid absolute inset-0 opacity-70" />
-        <div className="absolute -left-40 top-20 h-[32rem] w-[32rem] animate-[orb-float_9s_ease-in-out_infinite] rounded-full bg-amber-100/70 blur-3xl" />
-        <div className="absolute -right-40 top-24 h-[38rem] w-[38rem] animate-[orb-float_11s_ease-in-out_infinite_reverse] rounded-full bg-emerald-200/65 blur-3xl" />
+        <div className="absolute -left-40 top-20 h-[32rem] w-[32rem] rounded-full bg-amber-100/70 blur-3xl" />
+        <div className="absolute -right-40 top-24 h-[38rem] w-[38rem] rounded-full bg-emerald-200/65 blur-3xl" />
         <div className="absolute left-[42%] top-[12rem] h-64 w-64 rounded-full bg-cyan-100/50 blur-3xl" />
         <div className="relative mx-auto grid w-full max-w-7xl items-center gap-12 lg:grid-cols-[0.92fr_1.08fr]">
           <div className="relative z-10">
             <span className="landing-reveal landing-delay-1 inline-flex items-center gap-2 rounded-full border border-emerald-200/80 bg-white/75 px-3 py-1.5 text-xs font-black uppercase tracking-[0.12em] text-emerald-700 shadow-sm backdrop-blur">
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
               </span>
               <QrCode className="h-4 w-4" />
@@ -372,10 +371,10 @@ export default async function Home() {
         <div className="landing-reveal landing-delay-6 relative z-20 mx-auto mt-12 grid w-full max-w-7xl gap-2 rounded-3xl border border-white/80 bg-white/75 p-2 shadow-[0_22px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl sm:grid-cols-2 lg:grid-cols-4">
           {stats.map(({ icon: Icon, value, label }) => (
             <div
-              className="group flex items-center gap-4 rounded-2xl px-4 py-4 transition hover:bg-white hover:shadow-sm lg:border-r lg:border-slate-200/70 lg:last:border-r-0"
+              className="flex items-center gap-4 rounded-2xl px-4 py-4 transition-colors duration-200 hover:bg-white lg:border-r lg:border-slate-200/70 lg:last:border-r-0"
               key={label}
             >
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100 transition duration-300 group-hover:-rotate-3 group-hover:scale-105">
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100">
                 <Icon className="h-5 w-5" />
               </span>
               <div>
@@ -405,7 +404,7 @@ export default async function Home() {
           <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {features.map(({ icon: Icon, title, copy }, index) => (
               <article
-                className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(15,23,42,0.08)]"
+                className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm transition-colors duration-200 hover:border-emerald-200"
                 data-reveal
                 key={title}
                 style={{ "--reveal-delay": `${index * 70}ms` } as React.CSSProperties}
@@ -484,12 +483,12 @@ export default async function Home() {
             <div className="grid gap-3 lg:grid-cols-5 lg:gap-4">
             {flowSteps.map(({ icon: Icon, title, copy }, index) => (
               <article
-                className="group relative grid grid-cols-[3.4rem_minmax(0,1fr)] items-center gap-4 rounded-2xl border border-slate-200/80 bg-white/85 p-4 text-left shadow-[0_12px_36px_rgba(15,23,42,0.06)] backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-[0_18px_42px_rgba(15,23,42,0.1)] lg:block lg:min-h-56 lg:p-5 lg:text-center"
+                className="relative grid grid-cols-[3.4rem_minmax(0,1fr)] items-center gap-4 rounded-2xl border border-slate-200/80 bg-white/85 p-4 text-left shadow-[0_12px_36px_rgba(15,23,42,0.06)] backdrop-blur transition-colors duration-200 hover:border-emerald-200 lg:block lg:min-h-56 lg:p-5 lg:text-center"
                 data-reveal
                 key={title}
                 style={{ "--reveal-delay": `${index * 90}ms` } as React.CSSProperties}
               >
-                <div className="relative z-10 grid h-13 w-13 place-items-center rounded-2xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100 transition duration-300 group-hover:rotate-3 group-hover:scale-105 lg:mx-auto lg:h-16 lg:w-16">
+                <div className="relative z-10 grid h-13 w-13 place-items-center rounded-2xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100 lg:mx-auto lg:h-16 lg:w-16">
                   <Icon className="h-6 w-6 lg:h-8 lg:w-8" />
                   <span className="absolute -right-1.5 -top-1.5 grid h-5 w-5 place-items-center rounded-full bg-slate-950 text-[0.62rem] font-black text-white ring-2 ring-white">
                     {index + 1}
@@ -536,9 +535,9 @@ export default async function Home() {
           <div className="mx-auto mt-9 grid max-w-xl gap-4 lg:max-w-none lg:grid-cols-3 lg:items-stretch">
             {plans.map((plan, index) => (
               <article
-                className={`relative flex flex-col overflow-hidden rounded-3xl border p-5 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-[0_22px_55px_rgba(15,23,42,0.1)] sm:p-6 ${
+                className={`relative flex flex-col overflow-hidden rounded-3xl border p-5 shadow-sm transition-colors duration-200 hover:border-emerald-300 sm:p-6 ${
                   plan.featured
-                    ? "order-first border-emerald-400 bg-slate-950 text-white shadow-[0_22px_55px_rgba(15,23,42,0.18)] lg:order-none lg:-translate-y-3 lg:hover:-translate-y-4"
+                    ? "order-first border-emerald-400 bg-slate-950 text-white shadow-[0_22px_55px_rgba(15,23,42,0.18)] lg:order-none lg:-translate-y-3"
                     : "border-slate-200 bg-white text-slate-950"
                 }`}
                 data-reveal
