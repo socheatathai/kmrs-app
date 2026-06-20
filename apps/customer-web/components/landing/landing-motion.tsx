@@ -1,9 +1,20 @@
 "use client";
 
-import { useEffect } from "react";
+import Image from "next/image";
+import { useEffect, useState } from "react";
 
 export function LandingMotion() {
+  const [showIntro, setShowIntro] = useState(true);
+
   useEffect(() => {
+    const reducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
+    const introTimer = window.setTimeout(
+      () => setShowIntro(false),
+      reducedMotion ? 0 : 650,
+    );
+
     const cleanUrl = () => {
       window.history.replaceState(
         null,
@@ -61,9 +72,12 @@ export function LandingMotion() {
       document.querySelectorAll<HTMLElement>("[data-reveal]"),
     );
 
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    if (reducedMotion) {
       elements.forEach((element) => element.classList.add("is-visible"));
-      return () => document.removeEventListener("click", handleSectionClick);
+      return () => {
+        window.clearTimeout(introTimer);
+        document.removeEventListener("click", handleSectionClick);
+      };
     }
 
     const observer = new IntersectionObserver(
@@ -96,10 +110,32 @@ export function LandingMotion() {
     });
 
     return () => {
+      window.clearTimeout(introTimer);
       observer.disconnect();
       document.removeEventListener("click", handleSectionClick);
     };
   }, []);
 
-  return null;
+  if (!showIntro) return null;
+
+  return (
+    <div
+      aria-hidden="true"
+      className="landing-intro pointer-events-none fixed inset-0 z-[100] grid place-items-center bg-white/20 backdrop-blur-sm"
+    >
+      <div className="landing-intro-mark flex flex-col items-center gap-3">
+        <Image
+          alt=""
+          className="landing-intro-logo h-16 w-16 rounded-2xl object-cover shadow-lg"
+          height={128}
+          priority
+          src="/logo.png"
+          width={128}
+        />
+        <span className="landing-intro-label text-sm font-black tracking-[-0.02em] text-slate-950">
+          KMRS App
+        </span>
+      </div>
+    </div>
+  );
 }
