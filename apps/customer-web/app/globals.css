@@ -88,29 +88,45 @@ html {
   mask-image: linear-gradient(to bottom, black, transparent 88%);
 }
 
-.landing-reveal {
-  animation: landing-reveal 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+.landing-intro {
+  animation: intro-exit 650ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.landing-delay-1 { animation-delay: 60ms; }
-.landing-delay-2 { animation-delay: 140ms; }
-.landing-delay-3 { animation-delay: 220ms; }
-.landing-delay-4 { animation-delay: 300ms; }
-.landing-delay-5 { animation-delay: 380ms; }
-.landing-delay-6 { animation-delay: 480ms; }
+.landing-intro-mark {
+  display: flex;
+}
+
+.landing-intro-logo {
+  animation: intro-logo 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-intro-label {
+  animation: intro-label 380ms 120ms ease-out both;
+}
+
+.landing-reveal {
+  animation: landing-reveal 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.landing-delay-1 { animation-delay: 40ms; }
+.landing-delay-2 { animation-delay: 90ms; }
+.landing-delay-3 { animation-delay: 140ms; }
+.landing-delay-4 { animation-delay: 190ms; }
+.landing-delay-5 { animation-delay: 240ms; }
+.landing-delay-6 { animation-delay: 290ms; }
 
 [data-reveal] {
   opacity: 1;
   transform: translateY(0);
   transition:
-    opacity 700ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    transform 700ms cubic-bezier(0.2, 0.8, 0.2, 1);
+    opacity 440ms ease-out,
+    transform 440ms cubic-bezier(0.22, 1, 0.36, 1);
   transition-delay: var(--reveal-delay, 0ms);
 }
 
 [data-reveal].reveal-pending {
   opacity: 0;
-  transform: translateY(34px);
+  transform: translateY(16px);
 }
 
 [data-reveal].is-visible {
@@ -119,23 +135,24 @@ html {
 }
 
 @keyframes landing-reveal {
-  from { opacity: 0; transform: translateY(24px); }
+  from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes orb-float {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(24px, -20px, 0) scale(1.06); }
+@keyframes intro-logo {
+  from { opacity: 0; transform: scale(0.82); }
+  70% { opacity: 1; transform: scale(1.04); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-@keyframes phone-float {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-10px) rotate(0.4deg); }
+@keyframes intro-label {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes gentle-float {
-  0%, 100% { transform: translateY(0) rotate(-1deg); }
-  50% { transform: translateY(-8px) rotate(1deg); }
+@keyframes intro-exit {
+  0%, 68% { opacity: 1; }
+  100% { opacity: 0; visibility: hidden; }
 }
 
 @keyframes fade-in {

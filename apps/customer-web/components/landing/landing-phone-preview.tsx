@@ -39,7 +39,7 @@ export function LandingPhonePreview({
   return (
     <div className="mx-auto grid w-full max-w-[34rem] items-center gap-4 sm:grid-cols-[10.5rem_minmax(0,22rem)] lg:max-w-[38rem] lg:grid-cols-[11.5rem_minmax(0,23rem)]">
       <Link
-        className="order-2 animate-[gentle-float_6s_ease-in-out_infinite] rounded-3xl border border-white/90 bg-white/90 p-3 shadow-[0_24px_60px_rgba(15,23,42,0.12)] backdrop-blur transition hover:-translate-y-1 hover:border-emerald-300 sm:order-1"
+        className="order-2 rounded-3xl border border-white/90 bg-white/90 p-3 shadow-[0_24px_60px_rgba(15,23,42,0.12)] backdrop-blur transition-colors duration-200 hover:border-emerald-300 sm:order-1"
         href={menuHref}
       >
         <p className="text-center text-xs font-black text-slate-950">
@@ -61,7 +61,7 @@ export function LandingPhonePreview({
         </p>
       </Link>
 
-      <div className="relative order-1 mx-auto w-full max-w-[22rem] animate-[phone-float_7s_ease-in-out_infinite] overflow-hidden rounded-[2.7rem] border-[0.55rem] border-slate-950 bg-white shadow-[0_36px_90px_rgba(15,23,42,0.22)] sm:order-2">
+      <div className="relative order-1 mx-auto w-full max-w-[22rem] overflow-hidden rounded-[2.7rem] border-[0.55rem] border-slate-950 bg-white shadow-[0_36px_90px_rgba(15,23,42,0.22)] sm:order-2">
         <div className="absolute left-1/2 top-0 z-10 h-6 w-28 -translate-x-1/2 rounded-b-2xl bg-slate-950" />
         <div className="min-h-[33rem] bg-[#FAFAF9] p-4 pt-8 sm:min-h-[34rem]">
           <div className="flex items-center justify-between text-[0.7rem] font-black text-slate-950">

@@ -25,7 +25,7 @@ function HeaderLogo() {
     >
       <Image
         alt="KMRS App"
-        className="h-12 w-12 rounded-xl object-cover shadow-sm transition-transform duration-300 group-hover:scale-105"
+        className="h-12 w-12 rounded-xl object-cover shadow-sm"
         height={640}
         priority
         src="/logo.png"
@@ -48,13 +48,6 @@ export function LandingHeader({
   const [activeSection, setActiveSection] = useState("demo");
 
   useEffect(() => {
-    const updateHeader = () => setScrolled(window.scrollY > 16);
-    updateHeader();
-    window.addEventListener("scroll", updateHeader, { passive: true });
-    return () => window.removeEventListener("scroll", updateHeader);
-  }, []);
-
-  useEffect(() => {
     document.body.style.overflow = drawerOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
@@ -67,7 +60,12 @@ export function LandingHeader({
       .map((id) => document.getElementById(id))
       .filter((section): section is HTMLElement => Boolean(section));
 
-    const updateActiveSection = () => {
+    let animationFrame = 0;
+
+    const updateHeader = () => {
+      animationFrame = 0;
+      setScrolled(window.scrollY > 16);
+
       const headerOffset = 130;
       let currentSection = sections[0]?.id ?? "demo";
 
@@ -82,13 +80,19 @@ export function LandingHeader({
       setActiveSection(currentSection);
     };
 
-    updateActiveSection();
-    window.addEventListener("scroll", updateActiveSection, { passive: true });
-    window.addEventListener("resize", updateActiveSection);
+    const scheduleUpdate = () => {
+      if (animationFrame) return;
+      animationFrame = window.requestAnimationFrame(updateHeader);
+    };
+
+    updateHeader();
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate);
 
     return () => {
-      window.removeEventListener("scroll", updateActiveSection);
-      window.removeEventListener("resize", updateActiveSection);
+      window.cancelAnimationFrame(animationFrame);
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
     };
   }, [navItems]);
 
@@ -97,7 +101,7 @@ export function LandingHeader({
   return (
     <header className="sticky top-0 z-50 px-3 pt-3 sm:px-5">
       <nav
-        className={`mx-auto flex h-16 w-full max-w-7xl items-center justify-between rounded-2xl border px-4 transition-all duration-300 sm:px-5 ${
+        className={`mx-auto flex h-16 w-full max-w-7xl items-center justify-between rounded-2xl border px-4 transition-[background-color,border-color,box-shadow] duration-200 sm:px-5 ${
           scrolled
             ? "border-slate-200/80 bg-white/90 shadow-[0_16px_50px_rgba(15,23,42,0.1)] backdrop-blur-xl"
             : "border-white/70 bg-white/65 shadow-[0_8px_30px_rgba(15,23,42,0.05)] backdrop-blur-lg"
@@ -134,11 +138,11 @@ export function LandingHeader({
             Login
           </Link>
           <Link
-            className="group inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-black text-white shadow-[0_10px_24px_rgba(15,23,42,0.18)] transition hover:-translate-y-0.5 hover:bg-emerald-600"
+            className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-black text-white shadow-[0_10px_24px_rgba(15,23,42,0.18)] transition-colors duration-200 hover:bg-emerald-600"
             href={startFreeHref}
           >
             Start Free
-            <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+            <ArrowUpRight className="h-4 w-4" />
           </Link>
         </div>
 
