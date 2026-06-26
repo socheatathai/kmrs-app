@@ -22,6 +22,10 @@ export default () => ({
   ),
   publicMenuBaseUrl: envValue('PUBLIC_MENU_BASE_URL', 'https://kmrs.tech'),
   publicMenuPathPrefix: envValue('PUBLIC_MENU_PATH_PREFIX'),
+  paymentService: {
+    baseUrl: envValue('PAYMENT_SERVICE_URL', 'http://localhost:8083'),
+    token: envValue('PAYMENT_SERVICE_TOKEN'),
+  },
   spaces: {
     endpoint: envValue('DO_SPACES_ENDPOINT'),
     region: envValue('DO_SPACES_REGION'),

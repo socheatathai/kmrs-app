@@ -17,6 +17,7 @@ import { PublicModule } from './modules/public/public.module';
 import { UsersModule } from './modules/users/users.module';
 import { AuditLogsModule } from './modules/audit-logs/audit-logs.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
+import { PaymentsModule } from './modules/payments/payments.module';
 
 const isProduction = process.env.NODE_ENV === 'production';
 const envFilePath = isProduction
@@ -45,6 +46,7 @@ const envFilePath = isProduction
     UsersModule,
     AuditLogsModule,
     UploadsModule,
+    PaymentsModule,
   ],
 })
 export class AppModule implements NestModule {

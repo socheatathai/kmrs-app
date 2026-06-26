@@ -1,0 +1,31 @@
+server:
+  port: ${PORT:8083}
+
+spring:
+  application:
+    name: payment-service
+
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:55432/kmrs_dev?currentSchema=payment}
+    username: ${DATABASE_USERNAME:kmrs_user}
+    password: ${DATABASE_PASSWORD:kmrs_password}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  flyway:
+    enabled: true
+    schemas: payment
+    default-schema: payment
+    create-schemas: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+internal:
+  service-token: ${INTERNAL_SERVICE_TOKEN:change-me-local-token}
