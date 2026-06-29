@@ -5,6 +5,7 @@ KMRS is a pnpm workspace for a digital menu platform. The repo contains:
 - `apps/core-api`: NestJS API with Prisma, auth, permissions, uploads, and public menu endpoints
 - `apps/customer-web`: Next.js public menu frontend
 - `apps/merchant-cms`: Nuxt 4 admin and merchant dashboard
+- `apps/payment-service`: Spring Boot internal payment service
 - `packages/*`: shared API client, types, and workspace packages
 
 ## Workspace Layout
@@ -13,7 +14,8 @@ kmrs-app/
 |- apps/
 |  |- core-api/
 |  |- customer-web/
-|  `- merchant-cms/
+|  |- merchant-cms/
+|  `- payment-service/
 |- packages/
 |  |- api-client/
 |  |- config/
@@ -43,7 +45,7 @@ kmrs-app/
 |  |  |- components/
 |  |  |- lib/
 |  |  `- public/
-|  `- merchant-cms/
+|  |- merchant-cms/
 |     |- app/
 |     |  |- assets/
 |     |  |- composables/
@@ -53,6 +55,10 @@ kmrs-app/
 |     |  |- pages/
 |     |  `- stores/
 |     `- public/
+|  `- payment-service/
+|     |- src/main/java/
+|     |- src/main/resources/
+|     `- pom.xml
 |- packages/
 |  |- api-client/
 |  |- config/
@@ -69,6 +75,7 @@ kmrs-app/
 
 - Node.js 20+
 - pnpm 9
+- Java 17 and Maven, for `apps/payment-service`
 - Docker
 
 ## Quick Start
@@ -87,8 +94,8 @@ docker-compose up -d
 
 This starts:
 
-- PostgreSQL on `localhost:5432`
-- Redis on `localhost:6379`
+- PostgreSQL on `localhost:55432`
+- Redis on `localhost:6380`
 
 3. Create local env files.
 
@@ -102,7 +109,10 @@ Recommended local values:
 
 - `apps/core-api/.env.local`
   - set `PORT=3333`
+  - keep `DATABASE_URL="postgresql://kmrs_user:kmrs_password@localhost:55432/kmrs_dev?schema=public"` for the provided Docker Compose setup
   - set `CORS_ORIGINS="http://localhost:3000,http://localhost:3001"`
+  - set `PAYMENT_SERVICE_URL=http://localhost:8083`
+  - set `PAYMENT_SERVICE_TOKEN=change-me-local-token`
 - `apps/customer-web/.env.local`
   - set `BASE_URL=http://localhost:3333`
   - set `PUBLIC_MENU_BASE_URL=http://localhost:3000`
@@ -127,6 +137,13 @@ pnpm --filter merchant-cms dev
 pnpm --filter customer-web dev
 ```
 
+Run the payment service separately when testing payment flows:
+
+```sh
+cd apps/payment-service
+mvn spring-boot:run
+```
+
 You can also run the full workspace:
 
 ```sh
@@ -146,6 +163,7 @@ With the recommended setup above:
 - Swagger docs: `http://localhost:3333/docs`
 - `merchant-cms`: `http://localhost:3001`
 - `customer-web`: `http://localhost:3000`
+- `payment-service`: `http://localhost:8083`
 
 ## Workspace Commands
 
@@ -168,6 +186,14 @@ pnpm --filter customer-web dev
 pnpm --filter customer-web check-types
 pnpm --filter merchant-cms dev
 pnpm --filter merchant-cms typecheck
+```
+
+Payment service commands:
+
+```sh
+cd apps/payment-service
+mvn spring-boot:run
+mvn test
 ```
 
 ## Apps
@@ -229,6 +255,18 @@ Nuxt dashboard for admins and merchants:
 
 See [apps/merchant-cms/README.md](apps/merchant-cms/README.md).
 
+### `apps/payment-service`
+
+Spring Boot internal service for payment records and payment transactions:
+
+- Flyway-managed PostgreSQL schema named `payment`
+- `/payments` and `/transactions` APIs for internal payment workflows
+- `/internal/payments/:paymentId/mark-paid` endpoint for marking payments paid
+- `X-Internal-Service-Token` protection on non-health endpoints
+- health endpoint at `/actuator/health`
+
+See [apps/payment-service/README.md](apps/payment-service/README.md).
+
 ## Shared Packages
 
 - `@kmrs-app/api-client`: typed API client used by the frontend apps
@@ -254,6 +292,8 @@ The API requires:
 - `JWT_REFRESH_SECRET`
 - `CORS_ORIGINS`
 - `PUBLIC_MENU_BASE_URL`
+- `PAYMENT_SERVICE_URL`
+- `PAYMENT_SERVICE_TOKEN`
 - `DO_SPACES_ENDPOINT`
 - `DO_SPACES_REGION`
 - `DO_SPACES_BUCKET`
@@ -287,6 +327,7 @@ Demo public menus:
 - `apps/core-api/.env.example` still defaults to `PORT=3000`; change it in your local env if you want the documented `3333` setup.
 - `apps/customer-web/.env.example` should be copied into `.env.local` and adjusted to a full API origin such as `http://localhost:3333`.
 - `merchant-cms` currently has no dedicated `lint` or `test` script.
+- `payment-service` is Maven-based and is not part of the pnpm/Turbo task graph.
 - Upload endpoints now accept `folder=prod` or `folder=uat`.
 
 ## Safety Notes
