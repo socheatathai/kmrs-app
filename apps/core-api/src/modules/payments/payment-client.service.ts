@@ -29,6 +29,26 @@ type PaymentResponse = {
   updatedAt: string;
 };
 
+type CreateTransactionInput = {
+  paymentId: string;
+  amount: string;
+  currency?: string;
+  provider: string;
+  providerTransactionId?: string;
+  status?: 'PENDING' | 'SUCCEEDED' | 'FAILED';
+};
+
+type TransactionResponse = {
+  id: string;
+  paymentId: string;
+  amount: string;
+  currency: string;
+  provider: string;
+  providerTransactionId?: string;
+  status: 'PENDING' | 'SUCCEEDED' | 'FAILED';
+  createdAt: string;
+};
+
 @Injectable()
 export class PaymentClientService {
   constructor(private readonly configService: ConfigService) {}
@@ -46,6 +66,19 @@ export class PaymentClientService {
 
   findUserPayments(userId: string) {
     return this.request<PaymentResponse[]>(`/users/${userId}/payments`);
+  }
+
+  createTransaction(input: CreateTransactionInput) {
+    return this.request<TransactionResponse>('/transactions', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  }
+
+  findPaymentTransactions(paymentId: string) {
+    return this.request<TransactionResponse[]>(
+      `/payments/${paymentId}/transactions`,
+    );
   }
 
   markPaid(paymentId: string, providerTransactionId?: string) {
